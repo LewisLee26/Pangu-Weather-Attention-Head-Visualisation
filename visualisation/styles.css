@@ -1,0 +1,103 @@
+/* Basic page styling */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f9;
+    color: #333;
+    margin: 0;
+    padding: 20px;
+}
+
+h1 {
+    font-size: 24px;
+    color: #005f99;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+/* Flex container for map and attention sections */
+#container {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+/* Styling the attention container */
+#attention-container {
+    display: flex;
+    justify-content: center; /* Center the SVG horizontally */
+    align-items: center;     /* Center the SVG vertically */
+    width: 100%;
+    height: auto;
+    background-color: #ffffff;
+    margin-top: 10px;
+    padding: 5px;
+    overflow: hidden; /* Ensure no content overflows */
+}
+
+/* Ensure the SVG scales appropriately */
+#attention-container svg {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+}
+
+
+/* Styling the attention container */
+#map-container {
+    display: flex;
+    justify-content: center; /* Center the SVG horizontally */
+    align-items: center;     /* Center the SVG vertically */
+    width: 100%;
+    height: auto;
+    background-color: #ffffff;
+    margin-top: 10px;
+    padding: 5px;
+    overflow: hidden; /* Ensure no content overflows */
+}
+
+/* Ensure the SVG scales appropriately */
+#map-container svg {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+}
+
+
+/* Select box styling */
+select {
+    padding: 8px 12px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #ffffff;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: border-color 0.3s;
+}
+
+select:hover, select:focus {
+    border-color: #005f99;
+    outline: none;
+}
+
+/* Styling for SVG (map visualization) */
+svg {
+    width: 100%;
+    height: 100%;
+}
+
+/* Responsive design adjustments */
+@media (max-width: 768px) {
+    #container {
+        flex-direction: column; /* Stack containers on top of each other */
+    }
+
+    #map-container, #attention-container {
+        width: 100%;
+        height: 400px;  /* Adjust height for smaller screens */
+    }
+}

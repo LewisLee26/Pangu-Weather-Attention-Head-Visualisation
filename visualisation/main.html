@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pangu-Weather Attention Head Visualization</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div>
+        <label for="variable-select">Select Variable:</label>
+        <select id="variable-select">
+            <option value="T2M">T2M</option>
+            <option value="MSLP">MSLP</option>
+            <option value="U10">U10</option>
+            <option value="V10">V10</option>
+        </select>
+    </div>
+
+    <div>
+        <label for="attention-head">Select Attention Head:</label>
+        <select id="attention-head">
+            <option value="0">Head 0</option>
+            <option value="1">Head 1</option>
+            <option value="2">Head 2</option>
+            <option value="3">Head 3</option>
+            <option value="4">Head 4</option>
+            <option value="5">Head 5</option>
+            <option value="6">Head 6</option>
+            <option value="7">Head 7</option>
+            <option value="8">Head 8</option>
+            <option value="9">Head 9</option>
+            <option value="10">Head 10</option>
+            <option value="11">Head 11</option>
+        </select>
+    </div>
+
+    <div>
+        <label for="latitude">Latitude Index:</label>
+        <input type="number" id="latitude" min="0" max="29" value="0">
+
+        <label for="longitude">Longitude Index:</label>
+        <input type="number" id="longitude" min="0" max="29" value="0">
+    </div>
+
+    <!-- Flex container to hold map and attention side by side -->
+    <div id="container">
+        <div id="map-container"></div>
+        <div id="attention-container"></div>
+    </div>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
