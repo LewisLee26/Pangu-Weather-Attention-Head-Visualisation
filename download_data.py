@@ -3,6 +3,7 @@ import numpy as np
 import os
 from tqdm import trange
 from time import time
+import argparse
 
 def log_time(func):
     """Decorator to log the time taken by a function."""
@@ -26,11 +27,8 @@ def prepare_directory(date_str, time_str):
         os.makedirs(dir_path)
     return dir_path
 
-def main():
+def main(start_date, end_date):
     ds = load_dataset()
-
-    start_date = '2018-01-01'
-    end_date = '2018-01-31'
 
     # Select the dataset between start_date and end_date
     ds_filtered = ds.sel(time=slice(start_date, end_date))
@@ -68,4 +66,10 @@ def main():
         np.save(os.path.join(dir_path, "input_upper.npy"), input_upper)
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description='Process weather data.')
+    parser.add_argument('--start-date', type=str, required=True, help='Start date in YYYY-MM-DD format')
+    parser.add_argument('--end-date', type=str, required=True, help='End date in YYYY-MM-DD format')
+    
+    args = parser.parse_args()
+    
+    main(args.start_date, args.end_date)
