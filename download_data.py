@@ -20,56 +20,48 @@ def log_time(func):
 def load_dataset():
     return xr.open_zarr('gs://weatherbench2/datasets/pangu/2018-2022_0012_0p25.zarr')
 
-# Prepare the directory path function
-def prepare_directory(date_str, time_str):
-    dir_path = f"input_data/{date_str}/{time_str}"
+def prepare_directory(base_dir, date_str, time_str):
+    dir_path = os.path.join(base_dir, date_str, time_str)
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
     return dir_path
 
-def main(start_date, end_date):
+def main(start_date, end_date, base_dir='input_data'):
     ds = load_dataset()
 
-    # Select the dataset between start_date and end_date
     ds_filtered = ds.sel(time=slice(start_date, end_date))
 
     progress_bar = trange(len(ds_filtered['time']), desc="Processing time steps")
 
-    # Process each time step
     for i in progress_bar:
-        # Get the current time step
         current_time = ds_filtered['time'].isel(time=i).values
         date_str = np.datetime_as_string(current_time, unit='D')
         time_str = np.datetime_as_string(current_time, unit='m')[-5:]
 
         progress_bar.set_description(f"Saving Data: {date_str} {time_str}")
 
-        # Create directory for the current time step
-        dir_path = prepare_directory(date_str, time_str)
+        dir_path = prepare_directory(base_dir, date_str, time_str)
 
-        # Extract and stack surface variables
         surface_vars = ['mean_sea_level_pressure', '10m_u_component_of_wind', 
                         '10m_v_component_of_wind', '2m_temperature']
         input_surface = np.stack([ds_filtered[var].isel(time=i, prediction_timedelta=0).values.astype(np.float32) 
                                   for var in surface_vars], axis=0)
 
-        # Save input_surface.npy
         np.save(os.path.join(dir_path, "input_surface.npy"), input_surface)
 
-        # Extract and stack upper-air variables
         upper_vars = ['geopotential', 'specific_humidity', 'temperature', 
                       'u_component_of_wind', 'v_component_of_wind']
         input_upper = np.stack([ds_filtered[var].isel(time=i, prediction_timedelta=0).values.astype(np.float32) 
                                 for var in upper_vars], axis=0)
 
-        # Save input_upper.npy
         np.save(os.path.join(dir_path, "input_upper.npy"), input_upper)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process weather data.')
     parser.add_argument('--start-date', type=str, required=True, help='Start date in YYYY-MM-DD format')
     parser.add_argument('--end-date', type=str, required=True, help='End date in YYYY-MM-DD format')
-    
+    parser.add_argument('--dir', type=str, default='input_data', help='Base directory for saving data')
+
     args = parser.parse_args()
     
-    main(args.start_date, args.end_date)
+    main(args.start_date, args.end_date, args.dir)
