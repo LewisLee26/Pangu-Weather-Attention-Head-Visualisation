@@ -154,29 +154,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     function highlightMapCells(attentionIndex, mapData) {
         const { chunkSize } = getLayerConfig(currentLayer);
         const mapWidth = chunkSize[1];
-        console.log(mapWidth);
         
         if (mapWidth == 48) {
-            winLatSize = 6;
-            winLonSize = 12;
             patchSize = 4;
         } else {
-            winLatSize = 12;
-            winLonSize = 24;
             patchSize = 8;
         }
 
         const x = (attentionIndex % 144);
         const y = Math.floor(attentionIndex / 144);
 
-        const tar_pl = Math.floor(x / (winLonSize * winLatSize));
-        const src_pl = Math.floor(y / (winLonSize * winLatSize));
+        const tar_pl = Math.floor(x / (12 * 6));
+        const src_pl = Math.floor(y / (12 * 6));
 
-        const tar_lat = (Math.floor((x) / winLonSize) % winLatSize) * patchSize;
-        const src_lat = (Math.floor((y) / winLonSize) % winLatSize) * patchSize;
+        const tar_lat = (Math.floor(x / 12) % 6) * patchSize;
+        const src_lat = (Math.floor(y / 12) % 6) * patchSize;
 
-        const tar_lon = (x % winLonSize) * patchSize;
-        const src_lon = (y % winLonSize) * patchSize;
+        const tar_lon = (x % 12) * patchSize;
+        const src_lon = (y % 12) * patchSize;
 
         const tar_index = tar_lon + tar_lat * mapWidth;
         const src_index = src_lon + src_lat * mapWidth;
@@ -207,9 +202,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     (Math.floor(i / mapWidth) >= src_y && Math.floor(i / mapWidth) < src_y + patchSize);
 
                 if (inTargetBlock) {
-                    return mixColors(originalColor, "pink", 0.35);
+                    return mixColors(originalColor, "pink", 0.4);
                 } else if (inSourceBlock) {
-                    return mixColors(originalColor, "cyan", 0.35);
+                    return mixColors(originalColor, "cyan", 0.4);
                 } else {
                     return originalColor;
                 }
