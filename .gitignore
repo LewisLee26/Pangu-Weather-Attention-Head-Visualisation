@@ -6,5 +6,6 @@ output_data/*
 !output_data/.gitkeep
 visualisation/bin/*
 !visualisation/bin/.gitkeep
+visualisation/available_data.json
 notes.md
 .DS_Store

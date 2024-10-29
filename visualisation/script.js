@@ -1,5 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // Define the mapping of weather variables to their indices
+document.addEventListener('DOMContentLoaded', async () => {
     const surfaceVarIdx = {
         "MSLP": 0,
         "U10": 1,
@@ -7,17 +6,60 @@ document.addEventListener('DOMContentLoaded', () => {
         "T2M": 3
     };
 
-    // Global state to keep track of the selected variable, attention head, and indices
+    const intermediateLayerNames = [
+        '/b1/Add_output_0', '/b1/Add_3_output_0', '/b1/Add_7_output_0', '/b1/Add_10_output_0',
+        '/b1/Add_14_output_0', '/b1/Add_17_output_0', '/b1/Add_21_output_0', '/b1/Add_24_output_0',
+        '/b1/Add_28_output_0', '/b1/Add_31_output_0', '/b1/Add_35_output_0', '/b1/Add_38_output_0',
+        '/b1/Add_42_output_0', '/b1/Add_45_output_0', '/b1/Add_49_output_0', '/b1/Add_52_output_0',
+    ];
+
     let currentVariable = 'T2M';
     let currentAttentionHead = 0;
     let currentLatIndex = 0;
     let currentLonIndex = 0;
+    let currentDate = "";
+    let currentTime = "";
+    let currentLayer = "";
 
-    // Date and time for data organization
-    const dataDate = "2018-01-01";
-    const dataTime = "00:00";
+    const availableData = await fetch('available_data.json').then(response => response.json());
 
-    // Function to load binary data and convert it to a tensor
+    const dateSelect = document.getElementById('date-select');
+    const timeSelect = document.getElementById('time-select');
+    const layerSelect = document.getElementById('layer-select');
+
+    Object.keys(availableData).forEach(date => {
+        const option = new Option(date, date);
+        dateSelect.add(option);
+    });
+    currentDate = dateSelect.value;
+
+    function populateTimeAndLayerSelects() {
+        timeSelect.innerHTML = '';
+        layerSelect.innerHTML = '';
+
+        Object.keys(availableData[currentDate]).forEach(time => {
+            const option = new Option(time, time);
+            timeSelect.add(option);
+        });
+        currentTime = timeSelect.value;
+
+        availableData[currentDate][currentTime].forEach(layer => {
+            const option = new Option(layer, layer);
+            layerSelect.add(option);
+        });
+        currentLayer = layerSelect.value;
+    }
+
+    populateTimeAndLayerSelects();
+
+    function getLayerConfig(layerName) {
+        const modifiedLayerName = layerName.replace(/^_/, '/').replace('_', '/');
+        const layerIndex = intermediateLayerNames.indexOf(modifiedLayerName);
+        return (layerIndex < 2 || layerIndex >= intermediateLayerNames.length - 2) ?
+            { numHeads: 6, configName: 'config_24x48', chunkSize: [24, 48] } :
+            { numHeads: 12, configName: 'config_48x96', chunkSize: [48, 96] };
+    }
+
     async function loadBinaryData(url, shape, dtype = 'float32') {
         const response = await fetch(url);
         const arrayBuffer = await response.arrayBuffer();
@@ -28,15 +70,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return tf.tensor(typedArray, shape, dtype);
     }
 
-    // Function to load a specific map chunk
     async function loadMapChunk(latIndex, lonIndex) {
-        const url = `bin/${dataDate}/${dataTime}/map/input_surface_${latIndex * 24}_${lonIndex * 48}.bin`;
-        return loadBinaryData(url, [4, 24, 48]);
+        const { configName, chunkSize } = getLayerConfig(currentLayer);
+        const url = `bin/${currentDate}/${currentTime}/${configName}/map/input_surface_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
+        return loadBinaryData(url, [4, chunkSize[0], chunkSize[1]]);
     }
 
-    // Function to load a specific attention chunk
     async function loadAttentionChunk(lon, latPl, head) {
-        const url = `bin/${dataDate}/${dataTime}/attention/attention_${lon}_${latPl}_${head}.bin`;
+        const { numHeads } = getLayerConfig(currentLayer);
+        if (head >= numHeads) {
+            throw new Error(`Invalid head index: ${head} for layer ${currentLayer}`);
+        }
+        const url = `bin/${currentDate}/${currentTime}/${currentLayer}/attention/attention_${lon}_${latPl}_${head}.bin`;
         return loadBinaryData(url, [144, 144]);
     }
 
@@ -51,49 +96,32 @@ document.addEventListener('DOMContentLoaded', () => {
             d3.select("#map-container").selectAll("*").remove();
             d3.select("#attention-container").selectAll("*").remove();
 
-            initMap(mapDataArray.flat());
+            initMap(mapDataArray.flat(), mapData.shape);
             initAttentionPattern(attentionDataArray, mapDataArray);
         } catch (error) {
             console.error('Failed to initialize visualizations:', error);
         }
     }
 
-    function initMap(data) {
+    function initMap(data, mapShape) {
         const svg = d3.select("#map-container").append("svg")
-            .attr("viewBox", "0 0 720 720")
+            .attr("viewBox", `0 0 ${mapShape[2] * 15} ${mapShape[1] * 15}`)
             .attr("preserveAspectRatio", "xMidYMid meet")
             .classed("svg-content-responsive", true);
 
         const dataExtent = d3.extent(data.flat());
-        console.log("Data Extent:", dataExtent); // Debugging line
-
-        if (dataExtent[0] === dataExtent[1]) {
-            console.warn("Data extent has no range, all values might be the same.");
-        }
-
-        const colorScale = d3.scaleSequential(d3.interpolateTurbo)
-            .domain(dataExtent);
+        const colorScale = d3.scaleSequential(d3.interpolateTurbo).domain(dataExtent);
 
         svg.selectAll("rect")
             .data(data.flat())
             .enter().append("rect")
-            .attr("x", (d, i) => (i % 48) * 15)
-            .attr("y", (d, i) => Math.floor(i / 48) * 15)
+            .attr("x", (d, i) => (i % mapShape[2]) * 15)
+            .attr("y", (d, i) => Math.floor(i / mapShape[2]) * 15)
             .attr("width", 15)
             .attr("height", 15)
-            .attr("fill", d => {
-                if (d == null || isNaN(d)) {
-                    return "gray";
-                }
-                return colorScale(d);
-            })
+            .attr("fill", d => d == null || isNaN(d) ? "gray" : colorScale(d))
             .attr("class", "map-cell")
-            .attr("data-original-color", d => {
-                if (d == null || isNaN(d)) {
-                    return "gray";
-                }
-                return colorScale(d);
-            });
+            .attr("data-original-color", d => d == null || isNaN(d) ? "gray" : colorScale(d));
     }
 
     function initAttentionPattern(attentionData, mapData) {
@@ -102,8 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .attr("preserveAspectRatio", "xMidYMid meet")
             .classed("svg-content-responsive", true);
 
-        const colorScale = d3.scaleSequential(d3.interpolateViridis)
-            .domain(d3.extent(attentionData.flat()));
+        const colorScale = d3.scaleSequential(d3.interpolateViridis).domain(d3.extent(attentionData.flat()));
 
         svg.selectAll("rect")
             .data(attentionData.flat())
@@ -125,20 +152,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function highlightMapCells(attentionIndex, mapData) {
+        const { chunkSize } = getLayerConfig(currentLayer);
+        const mapWidth = chunkSize[1];
+        console.log(mapWidth);
+        
+        if (mapWidth == 48) {
+            winLatSize = 6;
+            winLonSize = 12;
+            patchSize = 4;
+        } else {
+            winLatSize = 12;
+            winLonSize = 24;
+            patchSize = 8;
+        }
+
         const x = (attentionIndex % 144);
         const y = Math.floor(attentionIndex / 144);
 
-        const tar_pl = Math.floor(x / (12 * 6));
-        const src_pl = Math.floor(y / (12 * 6));
+        const tar_pl = Math.floor(x / (winLonSize * winLatSize));
+        const src_pl = Math.floor(y / (winLonSize * winLatSize));
 
-        const tar_lat = (Math.floor((x) / 12) % 6) * 4;
-        const src_lat = (Math.floor((y) / 12) % 6) * 4;
+        const tar_lat = (Math.floor((x) / winLonSize) % winLatSize) * patchSize;
+        const src_lat = (Math.floor((y) / winLonSize) % winLatSize) * patchSize;
 
-        const tar_lon = (x % 12) * 4;
-        const src_lon = (y % 12) * 4;
+        const tar_lon = (x % winLonSize) * patchSize;
+        const src_lon = (y % winLonSize) * patchSize;
 
-        const tar_index = tar_lon + tar_lat * 48;
-        const src_index = src_lon + src_lat * 48;
+        const tar_index = tar_lon + tar_lat * mapWidth;
+        const src_index = src_lon + src_lat * mapWidth;
 
         function mixColors(c1, c2, ratio) {
             const color1 = d3.color(c1);
@@ -154,16 +195,16 @@ document.addEventListener('DOMContentLoaded', () => {
             .attr("fill", (d, i, nodes) => {
                 const originalColor = d3.select(nodes[i]).attr("data-original-color");
 
-                const tar_x = tar_index % 48;
-                const tar_y = Math.floor(tar_index / 48);
-                const src_x = src_index % 48;
-                const src_y = Math.floor(src_index / 48);
+                const tar_x = tar_index % mapWidth;
+                const tar_y = Math.floor(tar_index / mapWidth);
+                const src_x = src_index % mapWidth;
+                const src_y = Math.floor(src_index / mapWidth);
 
-                const inTargetBlock = (i % 48 >= tar_x && i % 48 < tar_x + 4) &&
-                    (Math.floor(i / 48) >= tar_y && Math.floor(i / 48) < tar_y + 4);
+                const inTargetBlock = (i % mapWidth >= tar_x && i % mapWidth < tar_x + patchSize) &&
+                    (Math.floor(i / mapWidth) >= tar_y && Math.floor(i / mapWidth) < tar_y + patchSize);
 
-                const inSourceBlock = (i % 48 >= src_x && i % 48 < src_x + 4) &&
-                    (Math.floor(i / 48) >= src_y && Math.floor(i / 48) < src_y + 4);
+                const inSourceBlock = (i % mapWidth >= src_x && i % mapWidth < src_x + patchSize) &&
+                    (Math.floor(i / mapWidth) >= src_y && Math.floor(i / mapWidth) < src_y + patchSize);
 
                 if (inTargetBlock) {
                     return mixColors(originalColor, "pink", 0.35);
@@ -175,27 +216,42 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
 
-    // Event listeners for user input
-    document.getElementById('variable-select').addEventListener('change', (event) => {
-        currentVariable = event.target.value;
-        initializeVisualizations();
+    const eventListeners = {
+        'variable-select': (event) => {
+            currentVariable = event.target.value;
+            initializeVisualizations();
+        },
+        'attention-head': (event) => {
+            currentAttentionHead = parseInt(event.target.value, 10);
+            initializeVisualizations();
+        },
+        'latitude': (event) => {
+            currentLatIndex = parseInt(event.target.value, 10);
+            initializeVisualizations();
+        },
+        'longitude': (event) => {
+            currentLonIndex = parseInt(event.target.value, 10);
+            initializeVisualizations();
+        },
+        'date-select': (event) => {
+            currentDate = event.target.value;
+            populateTimeAndLayerSelects();
+            initializeVisualizations();
+        },
+        'time-select': (event) => {
+            currentTime = event.target.value;
+            populateTimeAndLayerSelects();
+            initializeVisualizations();
+        },
+        'layer-select': (event) => {
+            currentLayer = event.target.value;
+            initializeVisualizations();
+        }
+    };
+
+    Object.keys(eventListeners).forEach(id => {
+        document.getElementById(id).addEventListener('change', eventListeners[id]);
     });
 
-    document.getElementById('attention-head').addEventListener('change', (event) => {
-        currentAttentionHead = parseInt(event.target.value, 10);
-        initializeVisualizations();
-    });
-
-    document.getElementById('latitude').addEventListener('input', (event) => {
-        currentLatIndex = parseInt(event.target.value, 10);
-        initializeVisualizations();
-    });
-
-    document.getElementById('longitude').addEventListener('input', (event) => {
-        currentLonIndex = parseInt(event.target.value, 10);
-        initializeVisualizations();
-    });
-
-    // Initialize the visualizations on page load
     initializeVisualizations();
 });
