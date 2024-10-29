@@ -13,6 +13,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentLatIndex = 0;
     let currentLonIndex = 0;
 
+    // Date and time for data organization
+    const dataDate = "2018-01-01";
+    const dataTime = "00:00";
+
     // Function to load binary data and convert it to a tensor
     async function loadBinaryData(url, shape, dtype = 'float32') {
         const response = await fetch(url);
@@ -26,13 +30,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Function to load a specific map chunk
     async function loadMapChunk(latIndex, lonIndex) {
-        const url = `bin/input_surface_${latIndex * 24}_${lonIndex * 48}.bin`;
+        const url = `bin/${dataDate}/${dataTime}/map/input_surface_${latIndex * 24}_${lonIndex * 48}.bin`;
         return loadBinaryData(url, [4, 24, 48]);
     }
 
     // Function to load a specific attention chunk
     async function loadAttentionChunk(lon, latPl, head) {
-        const url = `bin/attention_${lon}_${latPl}_${head}.bin`;
+        const url = `bin/${dataDate}/${dataTime}/attention/attention_${lon}_${latPl}_${head}.bin`;
         return loadBinaryData(url, [144, 144]);
     }
 
