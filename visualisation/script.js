@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const dateSelect = document.getElementById('date-select');
     const timeSelect = document.getElementById('time-select');
     const layerSelect = document.getElementById('layer-select');
+    const attentionHeadSelect = document.getElementById('attention-head');
 
     Object.keys(availableData).forEach(date => {
         const option = new Option(date, date);
@@ -48,6 +49,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             layerSelect.add(option);
         });
         currentLayer = layerSelect.value;
+        updateAttentionHeadOptions();
+    }
+
+    function updateAttentionHeadOptions() {
+        attentionHeadSelect.innerHTML = '';
+        const { numHeads } = getLayerConfig(currentLayer);
+        for (let i = 0; i < numHeads; i++) {
+            const option = new Option(`Head ${i}`, i);
+            attentionHeadSelect.add(option);
+        }
+        currentAttentionHead = attentionHeadSelect.value;
     }
 
     populateTimeAndLayerSelects();
@@ -240,6 +252,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         },
         'layer-select': (event) => {
             currentLayer = event.target.value;
+            updateAttentionHeadOptions();
             initializeVisualizations();
         }
     };

@@ -26,25 +26,18 @@
     </div>
 
     <div>
+        <label for="attention-head">Select Attention Head:</label>
+        <select id="attention-head">
+        </select>
+    </div>
+
+    <div>
         <label for="variable-select">Select Variable:</label>
         <select id="variable-select">
             <option value="T2M">T2M</option>
             <option value="MSLP">MSLP</option>
             <option value="U10">U10</option>
             <option value="V10">V10</option>
-        </select>
-    </div>
-
-    <div>
-        <label for="attention-head">Select Attention Head:</label>
-        <select id="attention-head">
-            <option value="0">Head 0</option>
-            <option value="1">Head 1</option>
-            <option value="2">Head 2</option>
-            <option value="3">Head 3</option>
-            <option value="4">Head 4</option>
-            <option value="5">Head 5</option>
-            <option value="6">Head 6</option>
         </select>
     </div>
 
@@ -59,7 +52,6 @@
         <input type="number" id="longitude" min="0" max="100" value="0">
     </div>
 
-    <!-- Flex container to hold map and attention side by side -->
     <div id="container">
         <div id="map-container"></div>
         <div id="attention-container"></div>
