@@ -27,12 +27,11 @@
 
     <div>
         <label for="attention-head">Select Attention Head:</label>
-        <select id="attention-head">
-        </select>
+        <select id="attention-head"></select>
     </div>
 
     <div>
-        <label for="variable-select">Select Variable:</label>
+        <label for="variable-select">Select Surface Variable:</label>
         <select id="variable-select">
             <option value="T2M">T2M</option>
             <option value="MSLP">MSLP</option>
@@ -42,8 +41,19 @@
     </div>
 
     <div>
+        <label for="upper-variable-select">Select Upper Variable:</label>
+        <select id="upper-variable-select">
+            <option value="Z">Z</option>
+            <option value="Q">Q</option>
+            <option value="T">T</option>
+            <option value="U">U</option>
+            <option value="V">V</option>
+        </select>
+    </div>
+
+    <div>
         <label for="pressure_level">Pressure Level Index:</label>
-        <input type="number" id="pressure_level" min="0" max="1" value="0">
+        <input type="number" id="pressure_level" min="0" max="3" value="0">
 
         <label for="latitude">Latitude Index:</label>
         <input type="number" id="latitude" min="0" max="100" value="0">

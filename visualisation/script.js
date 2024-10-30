@@ -6,6 +6,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         "T2M": 3
     };
 
+    const upperVarIdx = {
+        "Z": 0,
+        "Q": 1,
+        "T": 2,
+        "U": 3,
+        "V": 4
+    };
+
     const intermediateLayerNames = [
         '/b1/Add_output_0', '/b1/Add_3_output_0', '/b1/Add_7_output_0', '/b1/Add_10_output_0',
         '/b1/Add_14_output_0', '/b1/Add_17_output_0', '/b1/Add_21_output_0', '/b1/Add_24_output_0',
@@ -13,13 +21,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         '/b1/Add_42_output_0', '/b1/Add_45_output_0', '/b1/Add_49_output_0', '/b1/Add_52_output_0',
     ];
 
-    let currentVariable = 'T2M';
+    let currentSurfaceVariable = 'T2M';
+    let currentUpperVariable = 'Z';
     let currentAttentionHead = 0;
     let currentLatIndex = 0;
     let currentLonIndex = 0;
     let currentDate = "";
     let currentTime = "";
     let currentLayer = "";
+    let currentPressureLevel = 0;
 
     const availableData = await fetch('available_data.json').then(response => response.json());
 
@@ -82,10 +92,33 @@ document.addEventListener('DOMContentLoaded', async () => {
         return tf.tensor(typedArray, shape, dtype);
     }
 
-    async function loadMapChunk(latIndex, lonIndex) {
+    async function loadMapChunk(latIndex, lonIndex, pressureLevel) {
         const { configName, chunkSize } = getLayerConfig(currentLayer);
-        const url = `bin/${currentDate}/${currentTime}/${configName}/map/input_surface_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
-        return loadBinaryData(url, [4, chunkSize[0], chunkSize[1]]);
+        let tensors = [];
+
+        if (pressureLevel === 0) {
+            // Load surface data
+            const surfaceUrl = `bin/${currentDate}/${currentTime}/${configName}/map/input_surface_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
+            const surfaceTensor = await loadBinaryData(surfaceUrl, [4, chunkSize[0], chunkSize[1]]);
+            tensors.push(surfaceTensor.gather([surfaceVarIdx[currentSurfaceVariable]], 0));
+
+            // Load upper_0 data
+            const upperUrl = `bin/${currentDate}/${currentTime}/${configName}_upper_0/map/input_upper_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
+            const upperTensor = await loadBinaryData(upperUrl, [5, chunkSize[0], chunkSize[1]]);
+            tensors.push(upperTensor.gather([upperVarIdx[currentUpperVariable]], 0));
+        } else {
+            const upperIndices = [
+                [1, 2, 3, 4],
+                [5, 6, 7, 8],
+                [9, 10, 11, 12]
+            ][pressureLevel - 1];
+            for (const index of upperIndices) {
+                const upperUrl = `bin/${currentDate}/${currentTime}/${configName}_upper_${index}/map/input_upper_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
+                const upperTensor = await loadBinaryData(upperUrl, [5, chunkSize[0], chunkSize[1]]);
+                tensors.push(upperTensor.gather([upperVarIdx[currentUpperVariable]], 0));
+            }
+        }
+        return tensors;
     }
 
     async function loadAttentionChunk(lon, latPl, head) {
@@ -99,27 +132,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function initializeVisualizations() {
         try {
-            const mapData = await loadMapChunk(currentLatIndex, currentLonIndex);
+            const mapDataTensors = await loadMapChunk(currentLatIndex, currentLonIndex, currentPressureLevel);
             const attentionData = await loadAttentionChunk(currentLonIndex, currentLatIndex, currentAttentionHead);
 
-            const mapDataArray = mapData.gather([surfaceVarIdx[currentVariable]], 0).arraySync();
+            const mapDataArray = mapDataTensors.map(tensor => tensor.arraySync());
             const attentionDataArray = attentionData.arraySync();
 
             d3.select("#map-container").selectAll("*").remove();
             d3.select("#attention-container").selectAll("*").remove();
 
-            initMap(mapDataArray.flat(), mapData.shape);
+            mapDataArray.forEach((data, index) => {
+                initMap(data.flat(), mapDataTensors[index].shape, index);
+            });
             initAttentionPattern(attentionDataArray, mapDataArray);
         } catch (error) {
             console.error('Failed to initialize visualizations:', error);
         }
     }
 
-    function initMap(data, mapShape) {
+    function initMap(data, mapShape, index) {
         const svg = d3.select("#map-container").append("svg")
             .attr("viewBox", `0 0 ${mapShape[2] * 15} ${mapShape[1] * 15}`)
             .attr("preserveAspectRatio", "xMidYMid meet")
-            .classed("svg-content-responsive", true);
+            .classed("svg-content-responsive", true)
+            .style("margin-left", `${index * 10}px`);
 
         const dataExtent = d3.extent(data.flat());
         const colorScale = d3.scaleSequential(d3.interpolateTurbo).domain(dataExtent);
@@ -225,7 +261,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const eventListeners = {
         'variable-select': (event) => {
-            currentVariable = event.target.value;
+            currentSurfaceVariable = event.target.value;
+            initializeVisualizations();
+        },
+        'upper-variable-select': (event) => {
+            currentUpperVariable = event.target.value;
             initializeVisualizations();
         },
         'attention-head': (event) => {
@@ -238,6 +278,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         },
         'longitude': (event) => {
             currentLonIndex = parseInt(event.target.value, 10);
+            initializeVisualizations();
+        },
+        'pressure_level': (event) => {
+            currentPressureLevel = parseInt(event.target.value, 10);
             initializeVisualizations();
         },
         'date-select': (event) => {

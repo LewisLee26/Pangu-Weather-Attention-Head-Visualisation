@@ -10,6 +10,7 @@ bin_dir = 'bin'
 data_date = "2018-01-01"
 data_time = "00:00"
 input_surface_name = "input_surface"
+input_upper_name = "input_upper"
 
 intermediate_layer_names = [
     '/b1/Add_output_0', 
@@ -31,27 +32,39 @@ intermediate_layer_names = [
 ]
 
 # Function to save map data for a given configuration
-def save_map_data(input_surface, chunk_size_lat, chunk_size_lon, config_name):
-    for lat_index in range(0, input_surface.shape[1], chunk_size_lat):
-        for lon_index in range(0, input_surface.shape[2], chunk_size_lon):
-            lat_end = min(lat_index + chunk_size_lat, input_surface.shape[1])
-            lon_end = min(lon_index + chunk_size_lon, input_surface.shape[2])
-            chunk_data = input_surface[:, lat_index:lat_end, lon_index:lon_end]
+def save_map_data(input_data, chunk_size_lat, chunk_size_lon, config_name, data_type):
+    for lat_index in range(0, input_data.shape[1], chunk_size_lat):
+        for lon_index in range(0, input_data.shape[2], chunk_size_lon):
+            lat_end = min(lat_index + chunk_size_lat, input_data.shape[1])
+            lon_end = min(lon_index + chunk_size_lon, input_data.shape[2])
+            chunk_data = input_data[:, lat_index:lat_end, lon_index:lon_end]
             
             # Create directory structure
             map_dir = os.path.join(bin_dir, data_date, data_time, config_name, 'map')
             os.makedirs(map_dir, exist_ok=True)
             
-            chunk_filename = f"input_surface_{lat_index}_{lon_index}.bin"
+            chunk_filename = f"{data_type}_{lat_index}_{lon_index}.bin"
             chunk_data.tofile(os.path.join(map_dir, chunk_filename))
 
 # Load input surface data
 input_surface_path = os.path.join(input_data_dir, data_date, data_time, f"{input_surface_name.replace('/', '_')}.npy")
 input_surface = np.load(input_surface_path)
 
-# Save map data for both configurations
-save_map_data(input_surface, 24, 48, 'config_24x48')
-save_map_data(input_surface, 48, 96, 'config_48x96')
+# Save map data for input surface
+save_map_data(input_surface, 24, 48, 'config_24x48', 'input_surface')
+save_map_data(input_surface, 48, 96, 'config_48x96', 'input_surface')
+
+# Load input upper data
+input_upper_path = os.path.join(input_data_dir, data_date, data_time, f"{input_upper_name.replace('/', '_')}.npy")
+input_upper = np.load(input_upper_path)
+
+# Split input upper data into 13 lots of (5, 721, 1440)
+for i in range(input_upper.shape[1]):
+    upper_data_chunk = input_upper[:, i, :, :]
+    print(upper_data_chunk.shape)
+    input()
+    save_map_data(upper_data_chunk, 24, 48, f'config_24x48_upper_{i}', 'input_upper')
+    save_map_data(upper_data_chunk, 48, 96, f'config_48x96_upper_{i}', 'input_upper')
 
 # Process attention data per layer
 for layer_index, layer_name in enumerate(intermediate_layer_names):
