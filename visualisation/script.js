@@ -203,26 +203,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         const { chunkSize } = getLayerConfig(currentLayer);
         const mapWidth = chunkSize[1];
         
-        if (mapWidth == 48) {
-            patchSize = 4;
-        } else {
-            patchSize = 8;
-        }
+        let patchSize = mapWidth === 48 ? 4 : 8;
 
         const x = (attentionIndex % 144);
         const y = Math.floor(attentionIndex / 144);
 
-        const tar_pl = Math.floor(x / (12 * 6));
-        const src_pl = Math.floor(y / (12 * 6));
+        const tar_pl = Math.floor(x / 72); // 12 * 6 -> 72 due to 12 subregions per row/column
+        const src_pl = Math.floor(y / 72);
 
         const tar_lat = (Math.floor(x / 12) % 6) * patchSize;
         const src_lat = (Math.floor(y / 12) % 6) * patchSize;
 
         const tar_lon = (x % 12) * patchSize;
         const src_lon = (y % 12) * patchSize;
-
-        const tar_index = tar_lon + tar_lat * mapWidth;
-        const src_index = src_lon + src_lat * mapWidth;
 
         function mixColors(c1, c2, ratio) {
             const color1 = d3.color(c1);
@@ -237,17 +230,48 @@ document.addEventListener('DOMContentLoaded', async () => {
         d3.selectAll("rect.map-cell")
             .attr("fill", (d, i, nodes) => {
                 const originalColor = d3.select(nodes[i]).attr("data-original-color");
+                const cellLatIndex = Math.floor(i / mapWidth);
+                const cellLonIndex = i % mapWidth;
+                const blockHeight = mapWidth / 2;
 
-                const tar_x = tar_index % mapWidth;
-                const tar_y = Math.floor(tar_index / mapWidth);
-                const src_x = src_index % mapWidth;
-                const src_y = Math.floor(src_index / mapWidth);
+                let inTargetBlock = false;
+                let inSourceBlock = false;
 
-                const inTargetBlock = (i % mapWidth >= tar_x && i % mapWidth < tar_x + patchSize) &&
-                    (Math.floor(i / mapWidth) >= tar_y && Math.floor(i / mapWidth) < tar_y + patchSize);
+                if (currentPressureLevel === 0) {
+                    // Handle surface and upper_0
+                    if (tar_pl === 0 && cellLatIndex < blockHeight) {
+                        inTargetBlock = cellLonIndex >= tar_lon && cellLonIndex < tar_lon + patchSize &&
+                                        cellLatIndex >= tar_lat && cellLatIndex < tar_lat + patchSize;
+                    } else if (tar_pl === 1 && cellLatIndex >= blockHeight) {
+                        inTargetBlock = cellLonIndex >= tar_lon && cellLonIndex < tar_lon + patchSize &&
+                                        (cellLatIndex - blockHeight) >= tar_lat && (cellLatIndex - blockHeight) < tar_lat + patchSize;
+                    }
 
-                const inSourceBlock = (i % mapWidth >= src_x && i % mapWidth < src_x + patchSize) &&
-                    (Math.floor(i / mapWidth) >= src_y && Math.floor(i / mapWidth) < src_y + patchSize);
+                    if (src_pl === 0 && cellLatIndex < blockHeight) {
+                        inSourceBlock = cellLonIndex >= src_lon && cellLonIndex < src_lon + patchSize &&
+                                        cellLatIndex >= src_lat && cellLatIndex < src_lat + patchSize;
+                    } else if (src_pl === 1 && cellLatIndex >= blockHeight) {
+                        inSourceBlock = cellLonIndex >= src_lon && cellLonIndex < src_lon + patchSize &&
+                                        (cellLatIndex - blockHeight) >= src_lat && (cellLatIndex - blockHeight) < src_lat + patchSize;
+                    }
+                } else {
+                    // Handle upper levels
+                    const upperIndexOffset = (tar_pl === 0) ? 0 : 2;
+                    const currentUpperIndex = Math.floor(cellLatIndex / blockHeight);
+                    
+                    if ((tar_pl === 0 && currentUpperIndex < 2) || (tar_pl === 1 && currentUpperIndex >= 2)) {
+                        inTargetBlock = cellLonIndex >= tar_lon && cellLonIndex < tar_lon + patchSize &&
+                                        (cellLatIndex % blockHeight) >= tar_lat && (cellLatIndex % blockHeight) < tar_lat + patchSize;
+                    }
+
+                    const upperIndexOffsetSource = (src_pl === 0) ? 0 : 2;
+                    const currentSourceUpperIndex = Math.floor(cellLatIndex / blockHeight);
+
+                    if ((src_pl === 0 && currentSourceUpperIndex < 2) || (src_pl === 1 && currentSourceUpperIndex >= 2)) {
+                        inSourceBlock = cellLonIndex >= src_lon && cellLonIndex < src_lon + patchSize &&
+                                        (cellLatIndex % blockHeight) >= src_lat && (cellLatIndex % blockHeight) < src_lat + patchSize;
+                    }
+                }
 
                 if (inTargetBlock) {
                     return mixColors(originalColor, "pink", 0.4);
