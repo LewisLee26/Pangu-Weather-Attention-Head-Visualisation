@@ -1,18 +1,6 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    const surfaceVarIdx = {
-        "MSLP": 0,
-        "U10": 1,
-        "V10": 2,
-        "T2M": 3
-    };
-
-    const upperVarIdx = {
-        "Z": 0,
-        "Q": 1,
-        "T": 2,
-        "U": 3,
-        "V": 4
-    };
+    const surfaceVarIdx = { "MSLP": 0, "U10": 1, "V10": 2, "T2M": 3 };
+    const upperVarIdx = { "Z": 0, "Q": 1, "T": 2, "U": 3, "V": 4 };
 
     const intermediateLayerNames = [
         '/b1/Add_output_0', '/b1/Add_3_output_0', '/b1/Add_7_output_0', '/b1/Add_10_output_0',
@@ -38,26 +26,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     const layerSelect = document.getElementById('layer-select');
     const attentionHeadSelect = document.getElementById('attention-head');
 
-    Object.keys(availableData).forEach(date => {
-        const option = new Option(date, date);
-        dateSelect.add(option);
-    });
+    // Populate date select
+    for (const date of Object.keys(availableData)) {
+        dateSelect.add(new Option(date, date));
+    }
     currentDate = dateSelect.value;
 
     function populateTimeAndLayerSelects() {
         timeSelect.innerHTML = '';
         layerSelect.innerHTML = '';
 
-        Object.keys(availableData[currentDate]).forEach(time => {
-            const option = new Option(time, time);
-            timeSelect.add(option);
-        });
+        for (const time of Object.keys(availableData[currentDate])) {
+            timeSelect.add(new Option(time, time));
+        }
         currentTime = timeSelect.value;
 
-        availableData[currentDate][currentTime].forEach(layer => {
-            const option = new Option(layer, layer);
-            layerSelect.add(option);
-        });
+        for (const layer of availableData[currentDate][currentTime]) {
+            layerSelect.add(new Option(layer, layer));
+        }
         currentLayer = layerSelect.value;
         updateAttentionHeadOptions();
     }
@@ -66,8 +52,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         attentionHeadSelect.innerHTML = '';
         const { numHeads } = getLayerConfig(currentLayer);
         for (let i = 0; i < numHeads; i++) {
-            const option = new Option(`Head ${i}`, i);
-            attentionHeadSelect.add(option);
+            attentionHeadSelect.add(new Option(`Head ${i}`, i));
         }
         currentAttentionHead = attentionHeadSelect.value;
     }
@@ -208,7 +193,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const x = (attentionIndex % 144);
         const y = Math.floor(attentionIndex / 144);
 
-        const tar_pl = Math.floor(x / 72); // 12 * 6 -> 72 due to 12 subregions per row/column
+        const tar_pl = Math.floor(x / 72); 
         const src_pl = Math.floor(y / 72);
 
         const tar_lat = (Math.floor(x / 12) % 6) * patchSize;
