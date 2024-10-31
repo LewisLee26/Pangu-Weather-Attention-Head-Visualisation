@@ -3,21 +3,21 @@ body {
     background-color: #f4f4f9;
     color: #333;
     margin: 0;
-    padding: 20px;
+    padding: 3px;
 }
 
 h1 {
     font-size: 24px;
     color: #005f99;
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 }
 
 .controls {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 }
 
 #container {
