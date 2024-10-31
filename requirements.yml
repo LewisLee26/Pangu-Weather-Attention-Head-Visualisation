@@ -1,0 +1,10 @@
+name: pangu-weather-att-head-vis
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - numpy
+  - onnx
+  - onnxruntime
+  - tqdm
+  - xarray
