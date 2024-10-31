@@ -118,7 +118,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function initializeVisualizations() {
         try {
             const mapDataTensors = await loadMapChunk(currentLatIndex, currentLonIndex, currentPressureLevel);
-            const attentionData = await loadAttentionChunk(currentLonIndex, currentLatIndex, currentAttentionHead);
+            const latPlIndex = currentLatIndex + currentPressureLevel * (getLayerConfig(currentLayer).chunkSize[0] === 24 ? 31 : 16);
+            const attentionData = await loadAttentionChunk(currentLonIndex, latPlIndex, currentAttentionHead);
 
             const mapDataArray = mapDataTensors.map(tensor => tensor.arraySync());
             const attentionDataArray = attentionData.arraySync();
