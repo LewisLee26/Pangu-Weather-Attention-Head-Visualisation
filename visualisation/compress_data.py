@@ -32,7 +32,11 @@ intermediate_layer_names = [
 ]
 
 # Function to save map data for a given configuration
-def save_map_data(input_data, chunk_size_lat, chunk_size_lon, config_name, data_type):
+def save_map_data(input_data, chunk_size_lat, chunk_size_lon, config_name, data_type, roll_data=False):
+    if roll_data:
+        # Roll the data by half the size of the window
+        input_data = np.roll(input_data, shift=(chunk_size_lat // 2, chunk_size_lon // 2), axis=(1, 2))
+    
     for lat_index in range(0, input_data.shape[1], chunk_size_lat):
         for lon_index in range(0, input_data.shape[2], chunk_size_lon):
             lat_end = min(lat_index + chunk_size_lat, input_data.shape[1])
@@ -54,6 +58,10 @@ input_surface = np.load(input_surface_path)
 save_map_data(input_surface, 24, 48, 'config_24x48', 'input_surface')
 save_map_data(input_surface, 48, 96, 'config_48x96', 'input_surface')
 
+# Save rolled map data for input surface
+save_map_data(input_surface, 24, 48, 'config_24x48_shifted', 'input_surface', roll_data=True)
+save_map_data(input_surface, 48, 96, 'config_48x96_shifted', 'input_surface', roll_data=True)
+
 # Load input upper data
 input_upper_path = os.path.join(input_data_dir, data_date, data_time, f"{input_upper_name.replace('/', '_')}.npy")
 input_upper = np.load(input_upper_path)
@@ -61,10 +69,12 @@ input_upper = np.load(input_upper_path)
 # Split input upper data into 13 lots of (5, 721, 1440)
 for i in range(input_upper.shape[1]):
     upper_data_chunk = input_upper[:, i, :, :]
-    print(upper_data_chunk.shape)
-    input()
     save_map_data(upper_data_chunk, 24, 48, f'config_24x48_upper_{i}', 'input_upper')
     save_map_data(upper_data_chunk, 48, 96, f'config_48x96_upper_{i}', 'input_upper')
+    
+    # Save rolled map data for input upper
+    save_map_data(upper_data_chunk, 24, 48, f'config_24x48_upper_{i}_shifted', 'input_upper', roll_data=True)
+    save_map_data(upper_data_chunk, 48, 96, f'config_48x96_upper_{i}_shifted', 'input_upper', roll_data=True)
 
 # Process attention data per layer
 for layer_index, layer_name in enumerate(intermediate_layer_names):

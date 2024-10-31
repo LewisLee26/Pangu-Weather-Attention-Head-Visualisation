@@ -79,16 +79,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function loadMapChunk(latIndex, lonIndex, pressureLevel) {
         const { configName, chunkSize } = getLayerConfig(currentLayer);
+        const layerIndex = intermediateLayerNames.indexOf(currentLayer.replace(/^_/, '/').replace('_', '/'));
+        const isOddLayer = layerIndex % 2 !== 0;
+        const configSuffix = isOddLayer ? '_shifted' : '';
         let tensors = [];
 
         if (pressureLevel === 0) {
             // Load surface data
-            const surfaceUrl = `bin/${currentDate}/${currentTime}/${configName}/map/input_surface_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
+            const surfaceUrl = `bin/${currentDate}/${currentTime}/${configName}${configSuffix}/map/input_surface_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
             const surfaceTensor = await loadBinaryData(surfaceUrl, [4, chunkSize[0], chunkSize[1]]);
             tensors.push(surfaceTensor.gather([surfaceVarIdx[currentSurfaceVariable]], 0));
 
             // Load upper_0 data
-            const upperUrl = `bin/${currentDate}/${currentTime}/${configName}_upper_0/map/input_upper_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
+            const upperUrl = `bin/${currentDate}/${currentTime}/${configName}_upper_0${configSuffix}/map/input_upper_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
             const upperTensor = await loadBinaryData(upperUrl, [5, chunkSize[0], chunkSize[1]]);
             tensors.push(upperTensor.gather([upperVarIdx[currentUpperVariable]], 0));
         } else {
@@ -98,7 +101,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 [9, 10, 11, 12]
             ][pressureLevel - 1];
             for (const index of upperIndices) {
-                const upperUrl = `bin/${currentDate}/${currentTime}/${configName}_upper_${index}/map/input_upper_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
+                const upperUrl = `bin/${currentDate}/${currentTime}/${configName}_upper_${index}${configSuffix}/map/input_upper_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
                 const upperTensor = await loadBinaryData(upperUrl, [5, chunkSize[0], chunkSize[1]]);
                 tensors.push(upperTensor.gather([upperVarIdx[currentUpperVariable]], 0));
             }
