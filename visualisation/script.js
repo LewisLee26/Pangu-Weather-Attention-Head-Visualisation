@@ -144,7 +144,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             .attr("viewBox", `0 0 ${mapShape[2] * 15} ${mapShape[1] * 15}`)
             .attr("preserveAspectRatio", "xMidYMid meet")
             .classed("svg-content-responsive", true)
-            .style("margin-left", `${index * 10}px`);
 
         const dataExtent = d3.extent(data.flat());
         const colorScale = d3.scaleSequential(d3.interpolateTurbo).domain(dataExtent);
