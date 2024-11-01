@@ -16,7 +16,6 @@ Please download the four pre-trained models (~1.1GB each) from Google drive or B
 - The 6-hour model (pangu_weather_6.onnx): [Google drive](https://drive.google.com/file/d/1a4XTktkZa5GCtjQxDJb_fNaqTAUiEJu4/view?usp=share_link)/[Baidu netdisk](https://pan.baidu.com/s/1q7IB7tNjqIwoGC7KVMPn4w?pwd=vxq3)
 - The 24-hour model (pangu_weather_24.onnx): [Google drive](https://drive.google.com/file/d/1lweQlxcn9fG0zKNW8ne1Khr9ehRTI6HP/view?usp=share_link)/[Baidu netdisk](https://pan.baidu.com/s/179q2gkz2BrsOR6g3yfTVQg?pwd=eajy)
 
-
 ### Download Pangu Data
 ```bash
 python download_data.py --start-date 2018-01-01 --end-date 2018-01-02
@@ -24,10 +23,15 @@ python download_data.py --start-date 2018-01-01 --end-date 2018-01-02
 
 ### Save Activations
 ```bash
-python save_activations --model_num 24 --data-date 2018-01-01 --data-time 00:00 --intermediate_layers 0 1 2 4 --num_threads 4
+python save_activations --model_num 24 --data-date 2018-01-01 --data-time 00:00 --intermediate_layers 0 1 2 3 --num_threads 4
 ```
 
 ### Compress Data
 ```bash
-python compress_data.py
+python format_data.py --data_date 2018-01-01 --data_time 00:00 --intermediate_layers 0 1 2 3 
+```
+
+### Host Web App
+```bash
+python -m http.server --directory src
 ```
