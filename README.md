@@ -17,21 +17,29 @@ Please download the four pre-trained models (~1.1GB each) from Google drive or B
 - The 24-hour model (pangu_weather_24.onnx): [Google drive](https://drive.google.com/file/d/1lweQlxcn9fG0zKNW8ne1Khr9ehRTI6HP/view?usp=share_link)/[Baidu netdisk](https://pan.baidu.com/s/179q2gkz2BrsOR6g3yfTVQg?pwd=eajy)
 
 ### Download Pangu Data
+Run the script to download the Pangu data from [WeatherBench2](https://github.com/google-research/weatherbench2). The dates range from 2018 to 2020 and there are two times per day, 00:00 and 12:00.
+
 ```bash
 python download_data.py --start-date 2018-01-01 --end-date 2018-01-02
 ```
 
 ### Save Activations
+Save the attention patterns and outputs from the model using the downloaded data. The model can take multiple indexes for the intermediate_layers, it ranges from 0 to 11, corresponding to the 12 attention layers in the model.
+
 ```bash
 python save_activations --model_num 24 --data-date 2018-01-01 --data-time 00:00 --intermediate_layers 0 1 2 3 --num_threads 4
 ```
 
-### Compress Data
+### Format Data
+Format the input and attention data to work for the web app visualisations. 
+
 ```bash
 python format_data.py --data_date 2018-01-01 --data_time 00:00 --intermediate_layers 0 1 2 3 
 ```
 
 ### Host Web App
+The web app can be hosted locally for easy access once all of the data has been formated correctly. By default, the web app can be access from [http://localhost:8000/main.html](http://localhost:8000/main.html).
+
 ```bash
 python -m http.server --directory src
 ```
