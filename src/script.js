@@ -86,7 +86,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return tf.tensor(typedArray, shape, dtype);
     }
 
-    // Load map chunk
     async function loadMapChunk(latIndex, lonIndex, pressureLevel) {
         const { configName, chunkSize } = getLayerConfig(state.currentLayer);
         const layerIndex = intermediateLayerNames.indexOf(state.currentLayer.replace(/^_/, '/').replace('_', '/'));
@@ -108,7 +107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             tensors.push(upperTensor.gather([upperVarIdx[state.currentUpperVariable]], 0));
         }
 
-        if (pressureLevel === 0 && !isOddLayer) {
+        if (pressureLevel === 3 && isOddLayer || pressureLevel === 0 && !isOddLayer) {
             const surfaceUrl = `bin/${state.currentDate}/${state.currentTime}/${configName}${configSuffix}/map/input_surface_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
             const surfaceTensor = await loadBinaryData(surfaceUrl, [4, chunkSize[0], chunkSize[1]]);
             tensors.push(surfaceTensor.gather([surfaceVarIdx[state.currentSurfaceVariable]], 0));
