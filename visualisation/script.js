@@ -1,7 +1,9 @@
 document.addEventListener('DOMContentLoaded', async () => {
+    // Constants for variable indices
     const surfaceVarIdx = { "MSLP": 0, "U10": 1, "V10": 2, "T2M": 3 };
     const upperVarIdx = { "Z": 0, "Q": 1, "T": 2, "U": 3, "V": 4 };
 
+    // Intermediate layer names
     const intermediateLayerNames = [
         '/b1/Add_output_0', '/b1/Add_3_output_0', '/b1/Add_7_output_0', '/b1/Add_10_output_0',
         '/b1/Add_14_output_0', '/b1/Add_17_output_0', '/b1/Add_21_output_0', '/b1/Add_24_output_0',
@@ -9,56 +11,62 @@ document.addEventListener('DOMContentLoaded', async () => {
         '/b1/Add_42_output_0', '/b1/Add_45_output_0', '/b1/Add_49_output_0', '/b1/Add_52_output_0',
     ];
 
-    let currentSurfaceVariable = 'T2M';
-    let currentUpperVariable = 'Z';
-    let currentAttentionHead = 0;
-    let currentLatIndex = 0;
-    let currentLonIndex = 0;
-    let currentDate = "";
-    let currentTime = "";
-    let currentLayer = "";
-    let currentPressureLevel = 0;
+    // Current state variables
+    let state = {
+        currentSurfaceVariable: 'T2M',
+        currentUpperVariable: 'Z',
+        currentAttentionHead: 0,
+        currentLatIndex: 0,
+        currentLonIndex: 0,
+        currentDate: "",
+        currentTime: "",
+        currentLayer: "",
+        currentPressureLevel: 0
+    };
 
+    // Fetch available data
     const availableData = await fetch('available_data.json').then(response => response.json());
 
+    // DOM elements
     const dateSelect = document.getElementById('date-select');
     const timeSelect = document.getElementById('time-select');
     const layerSelect = document.getElementById('layer-select');
     const attentionHeadSelect = document.getElementById('attention-head');
 
     // Populate date select
-    for (const date of Object.keys(availableData)) {
-        dateSelect.add(new Option(date, date));
-    }
-    currentDate = dateSelect.value;
+    populateSelect(dateSelect, Object.keys(availableData));
+    state.currentDate = dateSelect.value;
 
+    // Populate time and layer selects
     function populateTimeAndLayerSelects() {
-        timeSelect.innerHTML = '';
-        layerSelect.innerHTML = '';
+        populateSelect(timeSelect, Object.keys(availableData[state.currentDate]));
+        state.currentTime = timeSelect.value;
 
-        for (const time of Object.keys(availableData[currentDate])) {
-            timeSelect.add(new Option(time, time));
-        }
-        currentTime = timeSelect.value;
-
-        for (const layer of availableData[currentDate][currentTime]) {
-            layerSelect.add(new Option(layer, layer));
-        }
-        currentLayer = layerSelect.value;
+        populateSelect(layerSelect, availableData[state.currentDate][state.currentTime]);
+        state.currentLayer = layerSelect.value;
         updateAttentionHeadOptions();
     }
 
+    // Populate a select element with options
+    function populateSelect(selectElement, options) {
+        selectElement.innerHTML = '';
+        options.forEach(option => selectElement.add(new Option(option, option)));
+    }
+
+    // Update attention head options
     function updateAttentionHeadOptions() {
         attentionHeadSelect.innerHTML = '';
-        const { numHeads } = getLayerConfig(currentLayer);
+        const { numHeads } = getLayerConfig(state.currentLayer);
         for (let i = 0; i < numHeads; i++) {
             attentionHeadSelect.add(new Option(`Head ${i}`, i));
         }
-        currentAttentionHead = attentionHeadSelect.value;
+        state.currentAttentionHead = attentionHeadSelect.value;
     }
 
+    // Initial population of selects
     populateTimeAndLayerSelects();
 
+    // Get layer configuration
     function getLayerConfig(layerName) {
         const modifiedLayerName = layerName.replace(/^_/, '/').replace('_', '/');
         const layerIndex = intermediateLayerNames.indexOf(modifiedLayerName);
@@ -67,6 +75,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             { numHeads: 12, configName: 'config_48x96', chunkSize: [48, 96] };
     }
 
+    // Load binary data
     async function loadBinaryData(url, shape, dtype = 'float32') {
         const response = await fetch(url);
         const arrayBuffer = await response.arrayBuffer();
@@ -77,103 +86,59 @@ document.addEventListener('DOMContentLoaded', async () => {
         return tf.tensor(typedArray, shape, dtype);
     }
 
+    // Load map chunk
     async function loadMapChunk(latIndex, lonIndex, pressureLevel) {
-        const { configName, chunkSize } = getLayerConfig(currentLayer);
-        const layerIndex = intermediateLayerNames.indexOf(currentLayer.replace(/^_/, '/').replace('_', '/'));
+        const { configName, chunkSize } = getLayerConfig(state.currentLayer);
+        const layerIndex = intermediateLayerNames.indexOf(state.currentLayer.replace(/^_/, '/').replace('_', '/'));
         const isOddLayer = layerIndex % 2 !== 0;
         const configSuffix = isOddLayer ? '_shifted' : '';
         let tensors = [];
 
-        if (isOddLayer) {
-            // Apply shifted configuration for odd index layers
-            if (pressureLevel === 0) {
-                // Load upper_0 data
-                const upper0Url = `bin/${currentDate}/${currentTime}/${configName}_upper_0${configSuffix}/map/input_upper_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
-                const upper0Tensor = await loadBinaryData(upper0Url, [5, chunkSize[0], chunkSize[1]]);
-                tensors.push(upper0Tensor.gather([upperVarIdx[currentUpperVariable]], 0));
+        const upperIndicesMap = {
+            0: isOddLayer ? [0, 1, 2] : [0],
+            1: isOddLayer ? [3, 4, 5, 6] : [1, 2, 3, 4],
+            2: isOddLayer ? [7, 8, 9, 10] : [5, 6, 7, 8],
+            3: isOddLayer ? [11, 12] : [9, 10, 11, 12]
+        };
 
-                // Load upper_1 and upper_2 data
-                const upperIndices = [1, 2];
-                for (const index of upperIndices) {
-                    const upperUrl = `bin/${currentDate}/${currentTime}/${configName}_upper_${index}${configSuffix}/map/input_upper_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
-                    const upperTensor = await loadBinaryData(upperUrl, [5, chunkSize[0], chunkSize[1]]);
-                    tensors.push(upperTensor.gather([upperVarIdx[currentUpperVariable]], 0));
-                }
-            } else if (pressureLevel === 1) {
-                const upperIndices = [3, 4, 5, 6];
-                for (const index of upperIndices) {
-                    const upperUrl = `bin/${currentDate}/${currentTime}/${configName}_upper_${index}${configSuffix}/map/input_upper_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
-                    const upperTensor = await loadBinaryData(upperUrl, [5, chunkSize[0], chunkSize[1]]);
-                    tensors.push(upperTensor.gather([upperVarIdx[currentUpperVariable]], 0));
-                }
-            } else if (pressureLevel === 2) {
-                const upperIndices = [7, 8, 9, 10];
-                for (const index of upperIndices) {
-                    const upperUrl = `bin/${currentDate}/${currentTime}/${configName}_upper_${index}${configSuffix}/map/input_upper_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
-                    const upperTensor = await loadBinaryData(upperUrl, [5, chunkSize[0], chunkSize[1]]);
-                    tensors.push(upperTensor.gather([upperVarIdx[currentUpperVariable]], 0));
-                }
-            } else if (pressureLevel === 3) {
-                const upperIndices = [11, 12];
-                for (const index of upperIndices) {
-                    const upperUrl = `bin/${currentDate}/${currentTime}/${configName}_upper_${index}${configSuffix}/map/input_upper_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
-                    const upperTensor = await loadBinaryData(upperUrl, [5, chunkSize[0], chunkSize[1]]);
-                    tensors.push(upperTensor.gather([upperVarIdx[currentUpperVariable]], 0));
-                }
-
-                // Load surface data
-                const surfaceUrl = `bin/${currentDate}/${currentTime}/${configName}${configSuffix}/map/input_surface_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
-                const surfaceTensor = await loadBinaryData(surfaceUrl, [4, chunkSize[0], chunkSize[1]]);
-                tensors.push(surfaceTensor.gather([surfaceVarIdx[currentSurfaceVariable]], 0));
-            }
-        } else {
-            // Non-shifted configuration for even index layers
-            if (pressureLevel === 0) {
-                // Load surface data
-                const surfaceUrl = `bin/${currentDate}/${currentTime}/${configName}${configSuffix}/map/input_surface_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
-                const surfaceTensor = await loadBinaryData(surfaceUrl, [4, chunkSize[0], chunkSize[1]]);
-                tensors.push(surfaceTensor.gather([surfaceVarIdx[currentSurfaceVariable]], 0));
-
-                // Load upper_0 data
-                const upperUrl = `bin/${currentDate}/${currentTime}/${configName}_upper_0${configSuffix}/map/input_upper_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
-                const upperTensor = await loadBinaryData(upperUrl, [5, chunkSize[0], chunkSize[1]]);
-                tensors.push(upperTensor.gather([upperVarIdx[currentUpperVariable]], 0));
-            } else {
-                const upperIndices = [
-                    [1, 2, 3, 4],
-                    [5, 6, 7, 8],
-                    [9, 10, 11, 12]
-                ][pressureLevel - 1];
-                for (const index of upperIndices) {
-                    const upperUrl = `bin/${currentDate}/${currentTime}/${configName}_upper_${index}${configSuffix}/map/input_upper_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
-                    const upperTensor = await loadBinaryData(upperUrl, [5, chunkSize[0], chunkSize[1]]);
-                    tensors.push(upperTensor.gather([upperVarIdx[currentUpperVariable]], 0));
-                }
-            }
+        const upperIndices = upperIndicesMap[pressureLevel] || [];
+        for (const index of upperIndices) {
+            const upperUrl = `bin/${state.currentDate}/${state.currentTime}/${configName}_upper_${index}${configSuffix}/map/input_upper_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
+            const upperTensor = await loadBinaryData(upperUrl, [5, chunkSize[0], chunkSize[1]]);
+            tensors.push(upperTensor.gather([upperVarIdx[state.currentUpperVariable]], 0));
         }
+
+        if (pressureLevel === 0 && !isOddLayer) {
+            const surfaceUrl = `bin/${state.currentDate}/${state.currentTime}/${configName}${configSuffix}/map/input_surface_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
+            const surfaceTensor = await loadBinaryData(surfaceUrl, [4, chunkSize[0], chunkSize[1]]);
+            tensors.push(surfaceTensor.gather([surfaceVarIdx[state.currentSurfaceVariable]], 0));
+        }
+
         return tensors;
     }
 
+    // Load attention chunk
     async function loadAttentionChunk(lon, latPl, head) {
-        const { numHeads } = getLayerConfig(currentLayer);
+        const { numHeads } = getLayerConfig(state.currentLayer);
         if (head >= numHeads) {
-            throw new Error(`Invalid head index: ${head} for layer ${currentLayer}`);
+            throw new Error(`Invalid head index: ${head} for layer ${state.currentLayer}`);
         }
-        const url = `bin/${currentDate}/${currentTime}/${currentLayer}/attention/attention_${lon}_${latPl}_${head}.bin`;
+        const url = `bin/${state.currentDate}/${state.currentTime}/${state.currentLayer}/attention/attention_${lon}_${latPl}_${head}.bin`;
         return loadBinaryData(url, [144, 144]);
     }
 
+    // Initialize visualizations
     async function initializeVisualizations() {
         try {
-            const mapDataTensors = await loadMapChunk(currentLatIndex, currentLonIndex, currentPressureLevel);
-            const latPlIndex = currentLatIndex + currentPressureLevel * (getLayerConfig(currentLayer).chunkSize[0] === 24 ? 31 : 16);
-            const attentionData = await loadAttentionChunk(currentLonIndex, latPlIndex, currentAttentionHead);
+            const mapDataTensors = await loadMapChunk(state.currentLatIndex, state.currentLonIndex, state.currentPressureLevel);
+            const latPlIndex = state.currentLatIndex + state.currentPressureLevel * (getLayerConfig(state.currentLayer).chunkSize[0] === 24 ? 31 : 16);
+            const attentionData = await loadAttentionChunk(state.currentLonIndex, latPlIndex, state.currentAttentionHead);
 
             const mapDataArray = mapDataTensors.map(tensor => tensor.arraySync());
             const attentionDataArray = attentionData.arraySync();
 
-            d3.select("#map-container").selectAll("*").remove();
-            d3.select("#attention-container").selectAll("*").remove();
+            clearContainer("#map-container");
+            clearContainer("#attention-container");
 
             mapDataArray.forEach((data, index) => {
                 initMap(data.flat(), mapDataTensors[index].shape, index);
@@ -184,12 +149,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // Clear container
+    function clearContainer(selector) {
+        d3.select(selector).selectAll("*").remove();
+    }
+
+    // Initialize map
     function initMap(data, mapShape, index) {
         const svg = d3.select("#map-container").append("svg")
             .attr("viewBox", `0 0 ${mapShape[2] * 15} ${mapShape[1] * 15}`)
             .attr("preserveAspectRatio", "xMidYMid meet")
-            .classed("svg-content-responsive", true)
-            //.style("margin-left", `${index * 10}px`);
+            .classed("svg-content-responsive", true);
 
         const dataExtent = d3.extent(data.flat());
         const colorScale = d3.scaleSequential(d3.interpolateTurbo).domain(dataExtent);
@@ -206,6 +176,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             .attr("data-original-color", d => d == null || isNaN(d) ? "gray" : colorScale(d));
     }
 
+    // Initialize attention pattern
     function initAttentionPattern(attentionData, mapData) {
         const svg = d3.select("#attention-container").append("svg")
             .attr("viewBox", "0 0 864 864")
@@ -233,8 +204,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
     }
 
+    // Highlight map cells
     function highlightMapCells(attentionIndex, mapData) {
-        const { chunkSize } = getLayerConfig(currentLayer);
+        const { chunkSize } = getLayerConfig(state.currentLayer);
         const mapWidth = chunkSize[1];
         
         let patchSize = mapWidth === 48 ? 4 : 8;
@@ -271,13 +243,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let inTargetBlock = false;
                 let inSourceBlock = false;
 
-                if (currentPressureLevel === 0) {
-                    // Handle surface and upper_0 for non-shifted
-                    // Handle upper_0, upper_1, and upper_2 for shifted
-                    const layerIndex = intermediateLayerNames.indexOf(currentLayer.replace(/^_/, '/').replace('_', '/'));
+                if (state.currentPressureLevel === 0) {
+                    const layerIndex = intermediateLayerNames.indexOf(state.currentLayer.replace(/^_/, '/').replace('_', '/'));
                     const isOddLayer = layerIndex % 2 !== 0;
                     if (isOddLayer) {
-                        // Shifted configuration
                         const upperIndexOffset = (tar_pl === 0) ? 0 : 2;
                         const currentUpperIndex = Math.floor(cellLatIndex / blockHeight);
 
@@ -300,7 +269,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                                             (cellLatIndex % blockHeight) >= src_lat && (cellLatIndex % blockHeight) < src_lat + patchSize;
                         }
                     } else {
-                        // Non-shifted configuration
                         if (tar_pl === 0 && cellLatIndex < blockHeight) {
                             inTargetBlock = cellLonIndex >= tar_lon && cellLonIndex < tar_lon + patchSize &&
                                             cellLatIndex >= tar_lat && cellLatIndex < tar_lat + patchSize;
@@ -318,7 +286,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }
                     }
                 } else {
-                    // Handle upper levels
                     const upperIndexOffset = (tar_pl === 0) ? 0 : 2;
                     const currentUpperIndex = Math.floor(cellLatIndex / blockHeight);
                     
@@ -346,51 +313,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
     }
 
-    const eventListeners = {
-        'variable-select': (event) => {
-            currentSurfaceVariable = event.target.value;
-            initializeVisualizations();
-        },
-        'upper-variable-select': (event) => {
-            currentUpperVariable = event.target.value;
-            initializeVisualizations();
-        },
-        'attention-head': (event) => {
-            currentAttentionHead = parseInt(event.target.value, 10);
-            initializeVisualizations();
-        },
-        'latitude': (event) => {
-            currentLatIndex = parseInt(event.target.value, 10);
-            initializeVisualizations();
-        },
-        'longitude': (event) => {
-            currentLonIndex = parseInt(event.target.value, 10);
-            initializeVisualizations();
-        },
-        'pressure_level': (event) => {
-            currentPressureLevel = parseInt(event.target.value, 10);
-            initializeVisualizations();
-        },
-        'date-select': (event) => {
-            currentDate = event.target.value;
-            populateTimeAndLayerSelects();
-            initializeVisualizations();
-        },
-        'time-select': (event) => {
-            currentTime = event.target.value;
-            populateTimeAndLayerSelects();
-            initializeVisualizations();
-        },
-        'layer-select': (event) => {
-            currentLayer = event.target.value;
-            updateAttentionHeadOptions();
-            initializeVisualizations();
-        }
-    };
+    // Attach event listeners
+    function attachEventListeners() {
+        const eventListeners = {
+            'variable-select': (value) => { state.currentSurfaceVariable = value; },
+            'upper-variable-select': (value) => { state.currentUpperVariable = value; },
+            'attention-head': (value) => { state.currentAttentionHead = parseInt(value, 10); },
+            'latitude': (value) => { state.currentLatIndex = parseInt(value, 10); },
+            'longitude': (value) => { state.currentLonIndex = parseInt(value, 10); },
+            'pressure_level': (value) => { state.currentPressureLevel = parseInt(value, 10); },
+            'date-select': (value) => { state.currentDate = value; populateTimeAndLayerSelects(); },
+            'time-select': (value) => { state.currentTime = value; populateTimeAndLayerSelects(); },
+            'layer-select': (value) => { state.currentLayer = value; updateAttentionHeadOptions(); }
+        };
 
-    Object.keys(eventListeners).forEach(id => {
-        document.getElementById(id).addEventListener('change', eventListeners[id]);
-    });
+        Object.keys(eventListeners).forEach(id => {
+            document.getElementById(id).addEventListener('change', (event) => {
+                eventListeners[id](event.target.value);
+                initializeVisualizations();
+            });
+        });
+    }
 
+    // Initialize visualizations on load
+    attachEventListeners();
     initializeVisualizations();
 });
