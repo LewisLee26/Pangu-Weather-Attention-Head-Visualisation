@@ -1,8 +1,6 @@
 ## Summary
 This web app is for interactively visualising the attention heads of the weather forecasting machine learning model, [Pangu-Weather](https://github.com/198808xc/Pangu-Weather). This app takes inspiration from [TransformerLens](https://github.com/TransformerLensOrg/TransformerLens) and [ViT-Prisma](https://github.com/soniajoseph/ViT-Prisma), libraries used for interpreting transformer models.
 
-![example](example.gif)
-
 ## Set Up
 
 ### Create environment
