@@ -100,6 +100,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             3: isOddLayer ? [11, 12] : [9, 10, 11, 12]
         };
 
+        if (pressureLevel === 0 && !isOddLayer) {
+            const surfaceUrl = `bin/${state.currentDate}/${state.currentTime}/${configName}${configSuffix}/map/input_surface_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
+            const surfaceTensor = await loadBinaryData(surfaceUrl, [4, chunkSize[0], chunkSize[1]]);
+            tensors.push(surfaceTensor.gather([surfaceVarIdx[state.currentSurfaceVariable]], 0));
+        }
+
         const upperIndices = upperIndicesMap[pressureLevel] || [];
         for (const index of upperIndices) {
             const upperUrl = `bin/${state.currentDate}/${state.currentTime}/${configName}_upper_${index}${configSuffix}/map/input_upper_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
@@ -107,7 +113,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             tensors.push(upperTensor.gather([upperVarIdx[state.currentUpperVariable]], 0));
         }
 
-        if (pressureLevel === 3 && isOddLayer || pressureLevel === 0 && !isOddLayer) {
+        if (pressureLevel === 3 && isOddLayer) {
             const surfaceUrl = `bin/${state.currentDate}/${state.currentTime}/${configName}${configSuffix}/map/input_surface_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
             const surfaceTensor = await loadBinaryData(surfaceUrl, [4, chunkSize[0], chunkSize[1]]);
             tensors.push(surfaceTensor.gather([surfaceVarIdx[state.currentSurfaceVariable]], 0));
