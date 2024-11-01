@@ -5,7 +5,7 @@ import numpy as np
 # Load your data
 input_data_dir = '../input_data'
 output_data_dir = '../output_data'
-bin_dir = 'bin'
+bin_dir = '../src/bin'
 
 data_date = "2018-01-01"
 data_time = "00:00"

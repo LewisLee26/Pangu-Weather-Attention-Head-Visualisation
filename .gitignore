@@ -4,8 +4,8 @@ input_data/*
 !input_data/.gitkeep
 output_data/*
 !output_data/.gitkeep
-visualisation/bin/*
-!visualisation/bin/.gitkeep
-visualisation/available_data.json
+src/bin/*
+!src/bin/.gitkeep
+src/available_data.json
 notes.md
 .DS_Store

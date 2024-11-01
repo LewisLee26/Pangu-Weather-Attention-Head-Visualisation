@@ -60,7 +60,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process weather data.')
     parser.add_argument('--start-date', type=str, required=True, help='Start date in YYYY-MM-DD format')
     parser.add_argument('--end-date', type=str, required=True, help='End date in YYYY-MM-DD format')
-    parser.add_argument('--dir', type=str, default='input_data', help='Base directory for saving data')
+    parser.add_argument('--dir', type=str, default='../input_data', help='Base directory for saving data')
 
     args = parser.parse_args()
     

@@ -138,9 +138,9 @@ if __name__ == "__main__":
     parser.add_argument('--data_date', type=str, required=True, help='Date of the data in YYYY-MM-DD format.')
     parser.add_argument('--data_time', type=str, required=True, help='Time of the data in HH:MM format.')
     parser.add_argument('--intermediate_layers', type=int, nargs='+', required=True, help='Indices of intermediate layers to use.')
-    parser.add_argument('--input_data_dir', type=str, default='input_data', help='Directory for input data.')
-    parser.add_argument('--output_data_dir', type=str, default='output_data', help='Directory for output data.')
-    parser.add_argument('--models_dir', type=str, default='checkpoints', help='Directory for model checkpoints.')
+    parser.add_argument('--input_data_dir', type=str, default='../input_data', help='Directory for input data.')
+    parser.add_argument('--output_data_dir', type=str, default='../output_data', help='Directory for output data.')
+    parser.add_argument('--models_dir', type=str, default='../checkpoints', help='Directory for model checkpoints.')
     parser.add_argument('--num_threads', type=int, default=4, help='Number of threads to use for ONNX Runtime session.')
 
     args = parser.parse_args()
