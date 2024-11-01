@@ -1,5 +1,5 @@
 ## Summary
-This web app is for interactively visualising the attention heads of the weather forecasting machine learning model, [Pangu-Weather](https://github.com/198808xc/Pangu-Weather).
+This web app is for interactively visualising the attention heads of the weather forecasting machine learning model, [Pangu-Weather](https://github.com/198808xc/Pangu-Weather). This app takes inspiration from [TransformerLens](https://github.com/TransformerLensOrg/TransformerLens) and [ViT-Prisma](https://github.com/soniajoseph/ViT-Prisma), libraries used for visualising transformer models.
 
 ## Set Up
 
@@ -42,19 +42,4 @@ The web app can be hosted locally for easy access once all of the data has been 
 
 ```bash
 python -m http.server --directory src
-```
-
-## References
-
-```
-@article{bi2023accurate,
-  title={Accurate medium-range global weather forecasting with 3D neural networks},
-  author={Bi, Kaifeng and Xie, Lingxi and Zhang, Hengheng and Chen, Xin and Gu, Xiaotao and Tian, Qi},
-  journal={Nature},
-  volume={619},
-  number={7970},
-  pages={533--538},
-  year={2023},
-  publisher={Nature Publishing Group}
-}
 ```
