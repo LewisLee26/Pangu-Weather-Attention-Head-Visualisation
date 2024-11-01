@@ -84,26 +84,71 @@ document.addEventListener('DOMContentLoaded', async () => {
         const configSuffix = isOddLayer ? '_shifted' : '';
         let tensors = [];
 
-        if (pressureLevel === 0) {
-            // Load surface data
-            const surfaceUrl = `bin/${currentDate}/${currentTime}/${configName}${configSuffix}/map/input_surface_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
-            const surfaceTensor = await loadBinaryData(surfaceUrl, [4, chunkSize[0], chunkSize[1]]);
-            tensors.push(surfaceTensor.gather([surfaceVarIdx[currentSurfaceVariable]], 0));
+        if (isOddLayer) {
+            // Apply shifted configuration for odd index layers
+            if (pressureLevel === 0) {
+                // Load upper_0 data
+                const upper0Url = `bin/${currentDate}/${currentTime}/${configName}_upper_0${configSuffix}/map/input_upper_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
+                const upper0Tensor = await loadBinaryData(upper0Url, [5, chunkSize[0], chunkSize[1]]);
+                tensors.push(upper0Tensor.gather([upperVarIdx[currentUpperVariable]], 0));
 
-            // Load upper_0 data
-            const upperUrl = `bin/${currentDate}/${currentTime}/${configName}_upper_0${configSuffix}/map/input_upper_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
-            const upperTensor = await loadBinaryData(upperUrl, [5, chunkSize[0], chunkSize[1]]);
-            tensors.push(upperTensor.gather([upperVarIdx[currentUpperVariable]], 0));
+                // Load upper_1 and upper_2 data
+                const upperIndices = [1, 2];
+                for (const index of upperIndices) {
+                    const upperUrl = `bin/${currentDate}/${currentTime}/${configName}_upper_${index}${configSuffix}/map/input_upper_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
+                    const upperTensor = await loadBinaryData(upperUrl, [5, chunkSize[0], chunkSize[1]]);
+                    tensors.push(upperTensor.gather([upperVarIdx[currentUpperVariable]], 0));
+                }
+            } else if (pressureLevel === 1) {
+                const upperIndices = [3, 4, 5, 6];
+                for (const index of upperIndices) {
+                    const upperUrl = `bin/${currentDate}/${currentTime}/${configName}_upper_${index}${configSuffix}/map/input_upper_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
+                    const upperTensor = await loadBinaryData(upperUrl, [5, chunkSize[0], chunkSize[1]]);
+                    tensors.push(upperTensor.gather([upperVarIdx[currentUpperVariable]], 0));
+                }
+            } else if (pressureLevel === 2) {
+                const upperIndices = [7, 8, 9, 10];
+                for (const index of upperIndices) {
+                    const upperUrl = `bin/${currentDate}/${currentTime}/${configName}_upper_${index}${configSuffix}/map/input_upper_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
+                    const upperTensor = await loadBinaryData(upperUrl, [5, chunkSize[0], chunkSize[1]]);
+                    tensors.push(upperTensor.gather([upperVarIdx[currentUpperVariable]], 0));
+                }
+            } else if (pressureLevel === 3) {
+                const upperIndices = [11, 12];
+                for (const index of upperIndices) {
+                    const upperUrl = `bin/${currentDate}/${currentTime}/${configName}_upper_${index}${configSuffix}/map/input_upper_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
+                    const upperTensor = await loadBinaryData(upperUrl, [5, chunkSize[0], chunkSize[1]]);
+                    tensors.push(upperTensor.gather([upperVarIdx[currentUpperVariable]], 0));
+                }
+
+                // Load surface data
+                const surfaceUrl = `bin/${currentDate}/${currentTime}/${configName}${configSuffix}/map/input_surface_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
+                const surfaceTensor = await loadBinaryData(surfaceUrl, [4, chunkSize[0], chunkSize[1]]);
+                tensors.push(surfaceTensor.gather([surfaceVarIdx[currentSurfaceVariable]], 0));
+            }
         } else {
-            const upperIndices = [
-                [1, 2, 3, 4],
-                [5, 6, 7, 8],
-                [9, 10, 11, 12]
-            ][pressureLevel - 1];
-            for (const index of upperIndices) {
-                const upperUrl = `bin/${currentDate}/${currentTime}/${configName}_upper_${index}${configSuffix}/map/input_upper_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
+            // Non-shifted configuration for even index layers
+            if (pressureLevel === 0) {
+                // Load surface data
+                const surfaceUrl = `bin/${currentDate}/${currentTime}/${configName}${configSuffix}/map/input_surface_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
+                const surfaceTensor = await loadBinaryData(surfaceUrl, [4, chunkSize[0], chunkSize[1]]);
+                tensors.push(surfaceTensor.gather([surfaceVarIdx[currentSurfaceVariable]], 0));
+
+                // Load upper_0 data
+                const upperUrl = `bin/${currentDate}/${currentTime}/${configName}_upper_0${configSuffix}/map/input_upper_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
                 const upperTensor = await loadBinaryData(upperUrl, [5, chunkSize[0], chunkSize[1]]);
                 tensors.push(upperTensor.gather([upperVarIdx[currentUpperVariable]], 0));
+            } else {
+                const upperIndices = [
+                    [1, 2, 3, 4],
+                    [5, 6, 7, 8],
+                    [9, 10, 11, 12]
+                ][pressureLevel - 1];
+                for (const index of upperIndices) {
+                    const upperUrl = `bin/${currentDate}/${currentTime}/${configName}_upper_${index}${configSuffix}/map/input_upper_${latIndex * chunkSize[0]}_${lonIndex * chunkSize[1]}.bin`;
+                    const upperTensor = await loadBinaryData(upperUrl, [5, chunkSize[0], chunkSize[1]]);
+                    tensors.push(upperTensor.gather([upperVarIdx[currentUpperVariable]], 0));
+                }
             }
         }
         return tensors;
@@ -144,6 +189,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             .attr("viewBox", `0 0 ${mapShape[2] * 15} ${mapShape[1] * 15}`)
             .attr("preserveAspectRatio", "xMidYMid meet")
             .classed("svg-content-responsive", true)
+            //.style("margin-left", `${index * 10}px`);
 
         const dataExtent = d3.extent(data.flat());
         const colorScale = d3.scaleSequential(d3.interpolateTurbo).domain(dataExtent);
@@ -226,21 +272,50 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let inSourceBlock = false;
 
                 if (currentPressureLevel === 0) {
-                    // Handle surface and upper_0
-                    if (tar_pl === 0 && cellLatIndex < blockHeight) {
-                        inTargetBlock = cellLonIndex >= tar_lon && cellLonIndex < tar_lon + patchSize &&
-                                        cellLatIndex >= tar_lat && cellLatIndex < tar_lat + patchSize;
-                    } else if (tar_pl === 1 && cellLatIndex >= blockHeight) {
-                        inTargetBlock = cellLonIndex >= tar_lon && cellLonIndex < tar_lon + patchSize &&
-                                        (cellLatIndex - blockHeight) >= tar_lat && (cellLatIndex - blockHeight) < tar_lat + patchSize;
-                    }
+                    // Handle surface and upper_0 for non-shifted
+                    // Handle upper_0, upper_1, and upper_2 for shifted
+                    const layerIndex = intermediateLayerNames.indexOf(currentLayer.replace(/^_/, '/').replace('_', '/'));
+                    const isOddLayer = layerIndex % 2 !== 0;
+                    if (isOddLayer) {
+                        // Shifted configuration
+                        const upperIndexOffset = (tar_pl === 0) ? 0 : 2;
+                        const currentUpperIndex = Math.floor(cellLatIndex / blockHeight);
 
-                    if (src_pl === 0 && cellLatIndex < blockHeight) {
-                        inSourceBlock = cellLonIndex >= src_lon && cellLonIndex < src_lon + patchSize &&
-                                        cellLatIndex >= src_lat && cellLatIndex < src_lat + patchSize;
-                    } else if (src_pl === 1 && cellLatIndex >= blockHeight) {
-                        inSourceBlock = cellLonIndex >= src_lon && cellLonIndex < src_lon + patchSize &&
-                                        (cellLatIndex - blockHeight) >= src_lat && (cellLatIndex - blockHeight) < src_lat + patchSize;
+                        if (tar_pl === 0) {
+                            inTargetBlock = cellLonIndex >= tar_lon && cellLonIndex < tar_lon + patchSize &&
+                                            cellLatIndex >= tar_lat && cellLatIndex < tar_lat + patchSize;
+                        } else if (tar_pl === 1 && currentUpperIndex >= 1) {
+                            inTargetBlock = cellLonIndex >= tar_lon && cellLonIndex < tar_lon + patchSize &&
+                                            (cellLatIndex % blockHeight) >= tar_lat && (cellLatIndex % blockHeight) < tar_lat + patchSize;
+                        }
+
+                        const upperIndexOffsetSource = (src_pl === 0) ? 0 : 2;
+                        const currentSourceUpperIndex = Math.floor(cellLatIndex / blockHeight);
+
+                        if (src_pl === 0) {
+                            inSourceBlock = cellLonIndex >= src_lon && cellLonIndex < src_lon + patchSize &&
+                                            cellLatIndex >= src_lat && cellLatIndex < src_lat + patchSize;
+                        } else if (src_pl === 1 && currentSourceUpperIndex >= 1) {
+                            inSourceBlock = cellLonIndex >= src_lon && cellLonIndex < src_lon + patchSize &&
+                                            (cellLatIndex % blockHeight) >= src_lat && (cellLatIndex % blockHeight) < src_lat + patchSize;
+                        }
+                    } else {
+                        // Non-shifted configuration
+                        if (tar_pl === 0 && cellLatIndex < blockHeight) {
+                            inTargetBlock = cellLonIndex >= tar_lon && cellLonIndex < tar_lon + patchSize &&
+                                            cellLatIndex >= tar_lat && cellLatIndex < tar_lat + patchSize;
+                        } else if (tar_pl === 1 && cellLatIndex >= blockHeight) {
+                            inTargetBlock = cellLonIndex >= tar_lon && cellLonIndex < tar_lon + patchSize &&
+                                            (cellLatIndex - blockHeight) >= tar_lat && (cellLatIndex - blockHeight) < tar_lat + patchSize;
+                        }
+
+                        if (src_pl === 0 && cellLatIndex < blockHeight) {
+                            inSourceBlock = cellLonIndex >= src_lon && cellLonIndex < src_lon + patchSize &&
+                                            cellLatIndex >= src_lat && cellLatIndex < src_lat + patchSize;
+                        } else if (src_pl === 1 && cellLatIndex >= blockHeight) {
+                            inSourceBlock = cellLonIndex >= src_lon && cellLonIndex < src_lon + patchSize &&
+                                            (cellLatIndex - blockHeight) >= src_lat && (cellLatIndex - blockHeight) < src_lat + patchSize;
+                        }
                     }
                 } else {
                     // Handle upper levels
