@@ -33,7 +33,7 @@ def clear_directory(directory):
 
 def save_map_data(input_data, chunk_size_lat, chunk_size_lon, config_name, data_type, roll_data=False):
     if roll_data:
-        input_data = np.roll(input_data, shift=(chunk_size_lat // 2, chunk_size_lon // 2), axis=(1, 2))
+        input_data = np.roll(input_data, shift=(chunk_size_lat // 2, chunk_size_lon // 2), axis=(-2, -1))
     
     for lat_index in range(0, input_data.shape[1], chunk_size_lat):
         for lon_index in range(0, input_data.shape[2], chunk_size_lon):
