@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     // Fetch available data
-    const availableData = await fetch('available_data.json').then(response => response.json());
+    const availableData = await fetch('available_data.json', { cache: 'no-store' }).then(response => response.json());
 
     // DOM elements
     const dateSelect = document.getElementById('date-select');
