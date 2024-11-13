@@ -8,3 +8,6 @@ dependencies:
   - onnxruntime
   - tqdm
   - xarray
+  - zarr
+  - fsspec
+  - gcsfs
