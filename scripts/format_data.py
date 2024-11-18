@@ -119,9 +119,9 @@ if __name__ == "__main__":
     parser.add_argument('--data_date', type=str, required=True, help='Date of the data in YYYY-MM-DD format.')
     parser.add_argument('--data_time', type=str, required=True, help='Time of the data in HH:MM format.')
     parser.add_argument('--intermediate_layers', type=int, nargs='+', required=True, help='Indices of intermediate layers to process.')
-    parser.add_argument('--input_data_dir', type=str, default='../input_data', help='Directory for input data.')
-    parser.add_argument('--output_data_dir', type=str, default='../output_data', help='Directory for output data.')
-    parser.add_argument('--src_dir', type=str, default='../src', help='Directory for binary output.')
+    parser.add_argument('--input_data_dir', type=str, default='input_data', help='Directory for input data.')
+    parser.add_argument('--output_data_dir', type=str, default='output_data', help='Directory for output data.')
+    parser.add_argument('--src_dir', type=str, default='src', help='Directory for binary output.')
     parser.add_argument('--input_surface_name', type=str, default='input_surface', help='Name of the input surface file.')
     parser.add_argument('--input_upper_name', type=str, default='input_upper', help='Name of the input upper file.')
 

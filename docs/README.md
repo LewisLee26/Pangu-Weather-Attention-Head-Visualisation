@@ -20,21 +20,21 @@ Please download the pre-trained models (~1.1GB each) from Google drive or Baidu 
 Run the script to download the Pangu data from [WeatherBench2](https://github.com/google-research/weatherbench2). The dates range from 2018 to 2022 and there are two times per day, 00:00 and 12:00.
 
 ```bash
-python download_data.py --start-date 2018-01-01 --end-date 2018-01-02
+python scripts/download_data.py --start_date 2018-01-01 --end_date 2018-01-02
 ```
 
 ### Save Activations
 Save the attention patterns and outputs from the model using the downloaded data. The model can take multiple indexes for the intermediate_layers, it ranges from 0 to 11, corresponding to the 12 attention layers in the model.
 
 ```bash
-python save_activations --model_num 24 --data-date 2018-01-01 --data-time 00:00 --intermediate_layers 0 1 2 3 --num_threads 4
+python scripts/save_activations.py --model_num 24 --data_date 2018-01-01 --data_time 00:00 --intermediate_layers 0 1 2 3 --num_threads 4
 ```
 
 ### Format Data
 Format the input and attention data to work for the web app visualisations. 
 
 ```bash
-python format_data.py --data_date 2018-01-01 --data_time 00:00 --intermediate_layers 0 1 2 3 
+python scripts/format_data.py --data_date 2018-01-01 --data_time 00:00 --intermediate_layers 0 1 2 3 
 ```
 
 ### Host Web App
