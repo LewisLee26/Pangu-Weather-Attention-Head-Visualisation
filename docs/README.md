@@ -3,11 +3,25 @@ This web app is for interactively visualising the attention heads of the weather
 
 ## Set Up
 
+
 ### Create environment
+This project uses [Conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html) to manage the Python packages. Run the following bash commands to set up and activate the Conda enviroment used for the data preparation Python scripts listed below. The Conda environment is not required for hosting the web app.
+
 ```bash
 conda env create -f requirements.yml
 conda activate pangu-weather-att-head-vis
 ```
+
+This conda requirements.yml file installs installs the following requirements:
+- python
+- numpy
+- onnx
+- onnxruntime
+- tqdm
+- xarray
+- zarr
+- fsspec
+- gcsfs
 
 ### Download Model
 Please download the pre-trained models (~1.1GB each) from Google drive or Baidu netdisk:
