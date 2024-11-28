@@ -24,7 +24,7 @@ With the environment activated, run the preprocess_data.py script which download
 Read more about how to set up the data at [preprocess_data.md](/docs/preprocess_data.md).
 
 ```bash
-python preprocess_data.py --start_date 2018-01-01 --end_date 2018-01-05
+python scripts/preprocess_data.py --start_date 2018-01-01 --end_date 2018-01-05
 ```
 
 ### Host Web App
