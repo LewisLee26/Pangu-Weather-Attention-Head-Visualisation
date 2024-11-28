@@ -5,7 +5,7 @@ The `preprocess_data.py` script has two required arguments: `start_date` and `en
 - `num_threads`: The number of threads to use when running the model.
 
 ```bash
-python preprocess_data.py --start_date 2018-01-01 --end_date 2018-01-5 --model_num 24 --intermediate 0 1 2 3 --num_threads 4
+python scripts/preprocess_data.py --start_date 2018-01-01 --end_date 2018-01-5 --model_num 24 --intermediate 0 1 2 3 --num_threads 4
 ```
 
 The preprocess_data.py script runs three main sub-scripts: download_data.py, save_activations.py, and format_data.py. All of these scripts can be run can be run individually.
