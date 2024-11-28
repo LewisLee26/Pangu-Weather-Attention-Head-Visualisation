@@ -19,7 +19,9 @@ conda activate pangu-weather-att-head-vis
 ```
 
 ### Preprocess Data
-With the environment activated, run the preprocess_data.py script which downloads the pangu data, runs the models to extract the intermidate activations, and formats the data into binaries for the web app. Read more about how to set up the data at [preprocess_data.md](/docs/preprocess_data.md).
+With the environment activated, run the preprocess_data.py script which downloads the pangu data, runs the models to extract the intermidate activations, and formats the data into binaries for the web app. 
+
+Read more about how to set up the data at [preprocess_data.md](/docs/preprocess_data.md).
 
 ```bash
 python preprocess_data.py --start_date 2018-01-01 --end_date 2018-01-05
