@@ -7,22 +7,24 @@ import argparse
 
 def log_time(func):
     """Decorator to log the time taken by a function."""
-    def wrapper(*args, **kwargs):
-        start_time = time()
-        print(f"{func.__name__.replace('_', ' ').title()}: Processing", end='\r')
+    def wrapper(*args, verbose=False, **kwargs):
+        if verbose:
+            start_time = time()
+            print(f"{func.__name__.replace('_', ' ').title()}: Processing", end='\r')
         result = func(*args, **kwargs)
-        end_time = time()
-        print(f"{func.__name__.replace('_', ' ').title()}: Complete - Time Taken: {end_time - start_time:.2f}")
+        if verbose:
+            end_time = time()
+            print(f"{func.__name__.replace('_', ' ').title()}: Complete - Time Taken: {end_time - start_time:.2f}")
         return result
     return wrapper
 
 @log_time
-def load_model(path):
+def load_model(path, verbose=False):
     """Load the ONNX model."""
     return onnx.load(path)
 
 @log_time
-def create_inter_output(model, layer_name_list):
+def create_inter_output(model, layer_name_list, verbose=False):
     """Add intermediate layer output to the ONNX model."""
     value_info_protos = []
     shape_info = onnx.shape_inference.infer_shapes(model)
@@ -36,7 +38,7 @@ def create_inter_output(model, layer_name_list):
     return model
 
 @log_time
-def create_session(model_path, output_names, num_threads):
+def create_session(model_path, output_names, num_threads, verbose=False):
     """Create an ONNX Runtime session."""
     options = ort.SessionOptions()
     options.enable_cpu_mem_arena = False
@@ -51,43 +53,45 @@ def create_session(model_path, output_names, num_threads):
     return session
 
 @log_time
-def load_data(input_dir, data_date, data_time):
+def load_data(input_dir, data_date, data_time, verbose=False):
     """Load input data."""
     input_upper = np.load(os.path.join(input_dir, data_date, data_time, 'input_upper.npy')).astype(np.float32)
     input_surface = np.load(os.path.join(input_dir, data_date, data_time, 'input_surface.npy')).astype(np.float32)
     return input_upper, input_surface
 
 @log_time
-def run_model(session, input_data, input_surface_data, output_names):
+def run_model(session, input_data, input_surface_data, output_names, verbose=False):
     """Run the model inference."""
     return session.run(output_names, {'input': input_data, 'input_surface': input_surface_data})
 
 @log_time
-def save_model(model, path):
+def save_model(model, path, verbose=False):
     """Save the modified ONNX model."""
     onnx.save(model, path)
 
 @log_time
-def save_output(output_data_dir, data_date, data_time, outputs, output_names):
+def save_output(output_data_dir, data_date, data_time, outputs, output_names, verbose=False):
     """Save the output data."""
     full_output_dir = os.path.join(output_data_dir, data_date, data_time)
     os.makedirs(full_output_dir, exist_ok=True)
     for i, output in enumerate(outputs):
         np.save(os.path.join(full_output_dir, f"{output_names[i].replace('/', '_')}.npy"), output)
 
-def print_layer_names(model):
+def print_layer_names(model, verbose=False):
     """Print all layer names in the ONNX model."""
-    for node in model.graph.node:
-        print(node.name)
+    if verbose:
+        for node in model.graph.node:
+            print(node.name)
 
-def print_layer_outputs(model):
-    """Print all layer names in the ONNX model."""
-    for node in model.graph.node:
-        print(node.output)
+def print_layer_outputs(model, verbose=False):
+    """Print all layer outputs in the ONNX model."""
+    if verbose:
+        for node in model.graph.node:
+            print(node.output)
 
 def main(args):
     model_path = os.path.join(args.models_dir, f'pangu_weather_{args.model_num}.onnx')
-    model = load_model(model_path)
+    model = load_model(model_path, verbose=args.verbose)
     
     intermediate_layer_name = [
         '/b1/Add_output_0', 
@@ -109,25 +113,27 @@ def main(args):
     ]
 
     selected_layers = [intermediate_layer_name[i] for i in args.intermediate_layers]
-    model = create_inter_output(model, selected_layers)
+    model = create_inter_output(model, selected_layers, verbose=args.verbose)
 
     try:
         onnx.checker.check_model(model)
-        print("Model Modifications: Valid")
+        if args.verbose:
+            print("Model Modifications: Valid")
     except onnx.checker.ValidationError as e:
-        print(f"Model Modifications: Invalid - {e}")
+        if args.verbose:
+            print(f"Model Modifications: Invalid - {e}")
         return
 
     modified_model_path = os.path.join(args.models_dir, f'pangu_weather_modified.onnx')
-    save_model(model, modified_model_path)
+    save_model(model, modified_model_path, verbose=args.verbose)
     
     output_names = []
-    ort_session = create_session(modified_model_path, output_names, args.num_threads)
-    input_data, input_surface_data = load_data(args.input_data_dir, args.data_date, args.data_time)
+    ort_session = create_session(modified_model_path, output_names, args.num_threads, verbose=args.verbose)
+    input_data, input_surface_data = load_data(args.input_data_dir, args.data_date, args.data_time, verbose=args.verbose)
     
-    outputs = run_model(ort_session, input_data, input_surface_data, output_names)
+    outputs = run_model(ort_session, input_data, input_surface_data, output_names, verbose=args.verbose)
 
-    save_output(args.output_data_dir, args.data_date, args.data_time, outputs, output_names)
+    save_output(args.output_data_dir, args.data_date, args.data_time, outputs, output_names, verbose=args.verbose)
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run ONNX model with specified parameters.')
@@ -139,6 +145,7 @@ if __name__ == "__main__":
     parser.add_argument('--output_data_dir', type=str, default='output_data', help='Directory for output data.')
     parser.add_argument('--models_dir', type=str, default='checkpoints', help='Directory for model checkpoints.')
     parser.add_argument('--num_threads', type=int, default=4, help='Number of threads to use for ONNX Runtime session.')
+    parser.add_argument('--verbose', action='store_true', help='Enable verbose output.')
 
     args = parser.parse_args()
     main(args)

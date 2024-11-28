@@ -25,13 +25,15 @@ INTERMEDIATE_LAYER_NAMES = [
     '/b1/Add_52_output_0',
 ]
 
-def clear_directory(directory):
+def clear_directory(directory, verbose=False):
     """Remove all files and subdirectories in the specified directory."""
     if os.path.exists(directory):
         shutil.rmtree(directory)
     os.makedirs(directory)
+    if verbose:
+        print(f"Cleared directory: {directory}")
 
-def save_map_data(input_data, chunk_size_lat, chunk_size_lon, config_name, data_type, roll_data=False):
+def save_map_data(input_data, chunk_size_lat, chunk_size_lon, config_name, data_type, roll_data=False, verbose=False):
     if roll_data:
         input_data = np.roll(input_data, shift=(chunk_size_lat // 2, chunk_size_lon // 2), axis=(-2, -1))
     
@@ -46,31 +48,33 @@ def save_map_data(input_data, chunk_size_lat, chunk_size_lon, config_name, data_
             
             chunk_filename = f"{data_type}_{lat_index}_{lon_index}.bin"
             chunk_data.tofile(os.path.join(map_dir, chunk_filename))
+            if verbose:
+                print(f"Saved chunk: {chunk_filename}")
 
 def main(args):
     # Clear the bin directory before processing
     bin_dir = os.path.join(args.src_dir, 'bin', args.data_date, args.data_time)
-    clear_directory(bin_dir)
+    clear_directory(bin_dir, verbose=args.verbose)
 
     input_surface_path = os.path.join(args.input_data_dir, args.data_date, args.data_time, f"{args.input_surface_name.replace('/', '_')}.npy")
     input_surface = np.load(input_surface_path)
 
-    save_map_data(input_surface, 24, 48, 'config_24x48', 'input_surface')
-    save_map_data(input_surface, 48, 96, 'config_48x96', 'input_surface')
-    save_map_data(input_surface, 24, 48, 'config_24x48_shifted', 'input_surface', roll_data=True)
-    save_map_data(input_surface, 48, 96, 'config_48x96_shifted', 'input_surface', roll_data=True)
+    save_map_data(input_surface, 24, 48, 'config_24x48', 'input_surface', verbose=args.verbose)
+    save_map_data(input_surface, 48, 96, 'config_48x96', 'input_surface', verbose=args.verbose)
+    save_map_data(input_surface, 24, 48, 'config_24x48_shifted', 'input_surface', roll_data=True, verbose=args.verbose)
+    save_map_data(input_surface, 48, 96, 'config_48x96_shifted', 'input_surface', roll_data=True, verbose=args.verbose)
 
     input_upper_path = os.path.join(args.input_data_dir, args.data_date, args.data_time, f"{args.input_upper_name.replace('/', '_')}.npy")
     input_upper = np.load(input_upper_path)
 
-    for i in trange(input_upper.shape[1], desc="Processing upper data chunks"):
+    for i in trange(input_upper.shape[1], desc="Processing upper data chunks", disable=not args.verbose):
         upper_data_chunk = input_upper[:, i, :, :]
-        save_map_data(upper_data_chunk, 24, 48, f'config_24x48_upper_{i}', 'input_upper')
-        save_map_data(upper_data_chunk, 48, 96, f'config_48x96_upper_{i}', 'input_upper')
-        save_map_data(upper_data_chunk, 24, 48, f'config_24x48_upper_{i}_shifted', 'input_upper', roll_data=True)
-        save_map_data(upper_data_chunk, 48, 96, f'config_48x96_upper_{i}_shifted', 'input_upper', roll_data=True)
+        save_map_data(upper_data_chunk, 24, 48, f'config_24x48_upper_{i}', 'input_upper', verbose=args.verbose)
+        save_map_data(upper_data_chunk, 48, 96, f'config_48x96_upper_{i}', 'input_upper', verbose=args.verbose)
+        save_map_data(upper_data_chunk, 24, 48, f'config_24x48_upper_{i}_shifted', 'input_upper', roll_data=True, verbose=args.verbose)
+        save_map_data(upper_data_chunk, 48, 96, f'config_48x96_upper_{i}_shifted', 'input_upper', roll_data=True, verbose=args.verbose)
 
-    for layer_index in tqdm(args.intermediate_layers, desc="Processing intermediate layers"):
+    for layer_index in tqdm(args.intermediate_layers, desc="Processing intermediate layers", disable=not args.verbose):
         if layer_index < 0 or layer_index >= len(INTERMEDIATE_LAYER_NAMES):
             print(f"Invalid layer index: {layer_index}. Skipping.")
             continue
@@ -95,6 +99,8 @@ def main(args):
                     os.makedirs(attention_dir, exist_ok=True)
                     attention_filename = f"attention_{lon}_{lat_pl}_{head}.bin"
                     attention_chunk.tofile(os.path.join(attention_dir, attention_filename))
+                    if args.verbose:
+                        print(f"Saved attention chunk: {attention_filename}")
 
     available_data = {}
     for date in os.listdir(os.path.join(args.src_dir, 'bin')):
@@ -113,6 +119,8 @@ def main(args):
     json_dir = os.path.join(args.src_dir, 'available_data.json')
     with open(json_dir, 'w') as json_file:
         json.dump(available_data, json_file, indent=4)
+    if args.verbose:
+        print(f"Saved available data to {json_dir}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process ONNX model outputs and save map data.')
@@ -124,6 +132,7 @@ if __name__ == "__main__":
     parser.add_argument('--src_dir', type=str, default='src', help='Directory for binary output.')
     parser.add_argument('--input_surface_name', type=str, default='input_surface', help='Name of the input surface file.')
     parser.add_argument('--input_upper_name', type=str, default='input_upper', help='Name of the input upper file.')
+    parser.add_argument('--verbose', action='store_true', help='Enable verbose output.')
 
     args = parser.parse_args()
     main(args)
