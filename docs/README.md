@@ -12,17 +12,6 @@ conda env create -f requirements.yml
 conda activate pangu-weather-att-head-vis
 ```
 
-This conda requirements.yml file installs installs the following requirements:
-- python
-- numpy
-- onnx
-- onnxruntime
-- tqdm
-- xarray
-- zarr
-- fsspec
-- gcsfs
-
 ### Download Model
 Please download the pre-trained models (~1.1GB each) from Google drive or Baidu netdisk:
 - The 1-hour model (pangu_weather_1.onnx): [Google drive](https://drive.google.com/file/d/1fg5jkiN_5dHzKb-5H9Aw4MOmfILmeY-S/view?usp=share_link)/[Baidu netdisk](https://pan.baidu.com/s/1M7SAigVsCSH8hpw6DE8TDQ?pwd=ie0h)
