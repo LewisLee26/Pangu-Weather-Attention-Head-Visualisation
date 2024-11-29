@@ -21,12 +21,12 @@ python scripts/download_data.py --start_date 2018-01-01 --end_date 2018-01-02
 Save the attention patterns and outputs from the model using the downloaded data. The model can take multiple indexes for the intermediate_layers, it ranges from 0 to 11, corresponding to the 12 attention layers in the model.
 
 ```bash
-python scripts/save_activations.py --model_num 24 --data_date 2018-01-01 --data_time 00:00 --intermediate_layers 0 1 2 3 --num_threads 4
+python scripts/save_activations.py --model_num 24 --data_date 2018-01-01 --data_time 00:00 --intermediate_layers 0 1 2 3 --num_threads 4 --verbose
 ```
 
 ### Format Data
 Format the input and attention data to work for the web app visualisations. 
 
 ```bash
-python scripts/format_data.py --data_date 2018-01-01 --data_time 00:00 --intermediate_layers 0 1 2 3 
+python scripts/format_data.py --data_date 2018-01-01 --data_time 00:00 --intermediate_layers 0 1 2 3 --verbose
 ```
