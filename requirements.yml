@@ -11,3 +11,8 @@ dependencies:
   - zarr
   - fsspec
   - gcsfs
+  - ipykernel
+  - jupyterlab
+  - ipywidgets
+  - plotly
+  - jupyterlab-plotly-extension
